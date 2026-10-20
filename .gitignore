@@ -14,3 +14,4 @@ vitest-results.json
 generated-images/
 # NAS runtime configuration (never publish)
 data/
+*.local.yml

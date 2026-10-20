@@ -1,3 +1,4 @@
+import { isSpiderSource } from './spider-source';
 import {
   decryptAes128CbcPrefix,
   looksLikeMp4,
@@ -356,6 +357,8 @@ async function probeEpisode(
 export async function probeQuality(item: QualityProbeItem, signal?: AbortSignal): Promise<QualityProbeResult> {
   const { source, id } = item;
   const base: QualityProbeResult = { sourceKey: source.key, vodId: id };
+  // Spider playback is resolved lazily; video decoding supplies the actual quality.
+  if (isSpiderSource(source)) return base;
 
   if (!/^https?:\/\//.test(source.url || '') || !/^[\w-]+$/.test(id)) {
     return { ...base, error: '无效的源或影片 ID' };

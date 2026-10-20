@@ -15,7 +15,11 @@ export function SharedSourceSync() {
     let baseline = '';
     let dirty = false;
     let unsubscribe = () => {};
+    const backup = (key: string, data: SharedSources) => {
+      try { localStorage.setItem(key, JSON.stringify(data)); return true; } catch { return false; }
+    };
     const apply = (data: SharedSources) => {
+      if (JSON.stringify(pickShared(useAppStore.getState())) === JSON.stringify(data)) return;
       applying = true;
       useAppStore.setState(data);
       applying = false;
@@ -29,8 +33,8 @@ export function SharedSourceSync() {
         const writing = revision !== null && dirty;
         const res = await fetch('/api/shared-sources', writing ? {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ revision, data: sent }),
-        } : { cache: 'no-store' });
+          body: JSON.stringify({ revision, data: sent }), signal: AbortSignal.timeout(12000),
+        } : { cache: 'no-store', signal: AbortSignal.timeout(12000) });
         if (stopped) return;
         if (!res.ok && res.status !== 409) throw new Error('源配置尚未同步到 NAS，将自动重试');
         const snapshot = await res.json() as { revision: string; data: SharedSources | null };
@@ -38,10 +42,10 @@ export function SharedSourceSync() {
         revision = snapshot.revision;
         if (res.status === 409 || (!writing && dirty && previousRevision !== null && previousRevision !== snapshot.revision)) {
           // Keep a recoverable local copy before accepting the other device's update.
-          localStorage.setItem('libretv-source-conflict-backup', JSON.stringify(sent));
+          const backedUp = backup('libretv-source-conflict-backup', pickShared(useAppStore.getState()));
           if (snapshot.data) apply(snapshot.data);
           dirty = false;
-          setMessage('其他设备已修改源配置，已载入最新版本；本次修改保存在本机冲突备份中，请重新编辑。');
+          setMessage(backedUp ? '其他设备已修改源配置，已载入最新版本；本次修改保存在本机冲突备份中，请重新编辑。' : '其他设备已修改源配置，已载入最新版本；浏览器无法保存本次修改的备份，请重新编辑。');
         } else if (writing) {
           baseline = JSON.stringify(sent);
           dirty = JSON.stringify(pickShared(useAppStore.getState())) !== baseline;
@@ -49,7 +53,7 @@ export function SharedSourceSync() {
         } else if (snapshot.data) {
           // An edit made while GET was in flight must go through revision checking.
           if (previousRevision === null || !dirty) {
-            if (previousRevision === null) localStorage.setItem('libretv-source-migration-backup', JSON.stringify(sent));
+            if (previousRevision === null) backup('libretv-source-migration-backup', sent);
             apply(snapshot.data);
             dirty = false;
           }
