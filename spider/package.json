@@ -1,0 +1,1 @@
+{"name":"libretv-xptv-worker","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test *.test.mjs"},"dependencies":{"cheerio":"1.0.0","crypto-js":"4.2.0","ipaddr.js":"2.2.0"}}

@@ -1,3 +1,4 @@
+import { isSpiderSource, searchSpider } from '@/lib/spider';
 import { NextResponse } from 'next/server';
 import { guardRequest } from '@/lib/api-guard';
 import { cmsRequestHeaders, filterAdultResults, filterRelevantResults, normalizeTitle, parseSearchList } from '@/lib/cms-parser';
@@ -62,6 +63,11 @@ async function searchSource(source: SourceConfig, wd: string): Promise<SourceSea
     ...outcome,
     ms: Date.now() - start,
   });
+
+  if (isSpiderSource(source)) {
+    try { return finish({ sourceKey: source.key, ok: true, list: await searchSpider(source, wd) }); }
+    catch (err) { return finish({ sourceKey: source.key, ok: false, list: [], error: err instanceof Error ? err.message : 'Spider 搜索失败' }); }
+  }
 
   if (!/^https?:\/\//.test(source.url || '')) {
     return finish({ sourceKey: source.key, ok: false, list: [], error: '无效的源地址' });

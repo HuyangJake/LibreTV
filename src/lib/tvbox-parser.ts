@@ -1,3 +1,4 @@
+import { isSpiderSource } from './spider-source';
 import type { SourceListPayload, SubscriptionParseStats, SubscriptionSkipReason } from './types';
 import {
   MAX_LIVE_SOURCES,
@@ -299,6 +300,17 @@ function collectVodSources(rawSites: unknown[], skipped: SkipCounter) {
 
     if (!api) {
       markSkipped(skipped, 'invalidUrl', name);
+      continue;
+    }
+    // XPTV type=3 stores its JS script in ext; direct .js API URLs also work.
+    const script = optionalString(site.ext) || api;
+    if (isSpiderSource({ url: script }) && /^https?:\/\//i.test(script) &&
+        (type === SITE_TYPE_SPIDER || isSpiderSource({ url: api }))) {
+      if (!seen.has(script)) {
+        seen.add(script);
+        if (sources.length < MAX_VOD_SOURCES) sources.push({ name: name || hostnameOf(script), url: script, isAdult: site.isAdult === true });
+        else truncated++;
+      }
       continue;
     }
     // Spider 类与本地资源需要 TVBOX 引擎，Node 侧无法运行

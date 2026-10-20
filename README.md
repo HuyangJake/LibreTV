@@ -244,3 +244,28 @@ CI 校验通过后自动构建并推送 `ghcr.io/librespark/libretv:<版本>`（
 本项目不存储、不制作任何视频内容，仅提供第三方公开接口的聚合与播放能力，内容的合法性由对应数据源负责。
 
 ☕ 觉得有用的话，可以到 [AFDIAN](https://afdian.com/a/veehub) 请我喝杯咖啡。
+## NAS fork：共享源与 XPTV Spider
+
+本 fork 基于官方 2.19.5，改造版本为 `2.19.5-nas.1`；开发分支为 `nas`。
+
+- 同一 NAS 的已登录设备共享自定义点播源、订阅、直播源和启停选择。设置变更约 2 秒内保存至 NAS，其他已打开的设备自动拉取。
+- 首个登录浏览器将现有源配置迁移到服务端；后续设备以 NAS 配置为准。本机旧配置保留在 `libretv-source-migration-backup`。并发编辑使用版本检查，冲突时加载 NAS 最新配置，本次修改保留在 `libretv-source-conflict-backup`，请重新编辑。
+- 观看历史、收藏、播放偏好仍是设备本地数据。所有共享用户使用原有站点密码；此版本没有多用户隔离。
+- 在「设置 → 点播源 → 添加」中填写 XPTV `.js` 链接即可。TVBOX 订阅中 `type: 3`、`ext` 为 `.js` 的条目也会导入。脚本必须实现 XPTV 的 `search/getTracks/getPlayinfo` 接口；不是所有 JS、TVBOX JAR、Python Spider 都兼容。
+- 已适配 `createCheerio`、`createCryptoJS`、`argsify/jsonify`、`$fetch.get/post`。脚本的播放请求头会随 HLS 分片、密钥请求转发。需要 Safari/WebView、人机验证、网盘登录或原生扩展的脚本不在兼容范围，错误会明确显示。
+
+部署（Docker Compose，单实例）：
+
+```sh
+# 在本 fork 的 nas 分支目录中；.env 使用你原来的 PASSWORD，勿提交到 GitHub
+# 可保留 DEFAULT_SOURCES / DEFAULT_SUBSCRIPTIONS 环境变量
+# 首次部署也可使用 docker compose -f docker-compose.nas.yml up -d --build
+docker compose -f docker-compose.nas.yml pull
+docker compose -f docker-compose.nas.yml up -d --no-build
+```
+
+默认端口为 18080，可用 `.env` 的 `LIBRETV_PORT` 调整。数据存于命名卷 `libretv-data` 中的 `/app/data/sources.json`；重建容器会保留数据，备份时保存此文件及原部署配置，勿执行 `down -v`。发布工作流会生成 `ghcr.io/<owner>/libretv:nas` 与 `libretv-spider:nas`，首次发布后应检查包的可见性；也可以在 NAS 从源码构建。
+
+Spider 是独立的非 root 容器，限制内存、CPU、进程数和运行时间，不挂载 NAS 文件或 Docker socket，不开放主机端口。**仅加载可信脚本**：Node VM 不是安全沙箱，容器隔离不能保证任意恶意脚本安全。Spider 可能访问互联网，部署者仍需信任脚本作者。源站的网络可达性、反爬策略、失效地址等会影响实际搜索和播放；兼容接口不等于保证每个第三方源始终可用。
+
+验证命令：`npm ci && npm run typecheck && npm test && npm run build`；Spider：`npm ci --prefix spider && npm test --prefix spider`。

@@ -1238,7 +1238,7 @@ function SourceForm({
     <input
       className="input w-full"
       aria-label="API 地址"
-      placeholder="API 地址，如 https://example.com/api.php/provide/vod"
+      placeholder="采集 API 地址或 XPTV Spider .js 链接"
       value={url}
       onChange={(e) => setUrl(e.target.value)}
     />
@@ -1249,6 +1249,7 @@ function SourceForm({
       value={detail}
       onChange={(e) => setDetail(e.target.value)}
     />
+      <p className="text-xs text-muted">支持 XPTV JavaScript Spider；仅添加可信脚本，浏览器验证类源可能无法在 NAS 执行。</p>
       <label className="flex items-center gap-2 text-xs text-muted">
         <input
           type="checkbox"

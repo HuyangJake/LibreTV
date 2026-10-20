@@ -13,7 +13,7 @@ export const LIVE_STREAM_BASE = '/api/live/stream?url=';
 
 /** URI 已是本站代理地址（新旧两种形式：/api/proxy/…、/api/proxy?url=…、/api/live/stream/…、/api/live/stream?url=…）时不再二次改写 */
 export function isProxiedUri(uri: string): boolean {
-  return uri.startsWith('/api/proxy') || uri.startsWith('/api/live/stream');
+  return uri.startsWith('/api/spider/') || uri.startsWith('/api/proxy') || uri.startsWith('/api/live/stream');
 }
 
 /**

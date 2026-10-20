@@ -1,0 +1,40 @@
+services:
+  libretv:
+    image: ghcr.io/huyangjake/libretv:nas
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${LIBRETV_PORT:-18080}:8080"
+    environment:
+      PASSWORD: ${PASSWORD:?Set PASSWORD in .env}
+      TZ: Asia/Shanghai
+      DATA_DIR: /app/data
+      SPIDER_URL: http://spider:8787
+      DEFAULT_SOURCES: ${DEFAULT_SOURCES:-[]}
+      DEFAULT_SUBSCRIPTIONS: ${DEFAULT_SUBSCRIPTIONS:-[]}
+    volumes:
+      - libretv-data:/app/data
+    depends_on:
+      - spider
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+  spider:
+    image: ghcr.io/huyangjake/libretv-spider:nas
+    build: ./spider
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 384m
+    cpus: 1.0
+    # No host ports, NAS volumes, Docker socket or application secrets.
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+volumes:
+  libretv-data:
