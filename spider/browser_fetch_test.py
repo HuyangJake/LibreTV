@@ -11,13 +11,16 @@ import browser_fetch
 class BrowserFetchTest(unittest.TestCase):
     def test_target_and_dns_must_be_public_before_connecting(self):
         for url in ['https://jable.tv.example/', 'http://jable.tv/',
-                    'https://jable.tv:444/', 'https://user:pass@jable.tv/']:
+                    'https://jable.tv:444/', 'https://user:pass@jable.tv/',
+                    'https://evil.com/', 'http://missav.ai/']:
             with self.assertRaises(ValueError):
                 browser_fetch.public_address(url)
         for address in ['127.0.0.1', '192.168.1.114', '169.254.169.254', '::1', '::ffff:127.0.0.1']:
             with patch('socket.getaddrinfo', return_value=[(socket.AF_INET, 0, 0, '', (address, 443))]):
                 with self.assertRaisesRegex(ValueError, '内网'):
                     browser_fetch.public_address('https://jable.tv/')
+                    browser_fetch.public_address('https://missav.ai/')
+                    browser_fetch.public_address('https://surrit.com/')
 
     def test_browser_fingerprint_pinned_dns_and_bounded_response(self):
         observed = {}
@@ -50,7 +53,7 @@ class BrowserFetchTest(unittest.TestCase):
             self.assertEqual(base64.b64decode(result['body']), b'<html>results</html>')
             self.assertEqual(result['headers'], {'Content-Type': 'text/html'})
             with patch.object(browser_fetch, 'MAX_BODY', 5):
-                with self.assertRaisesRegex(ValueError, '4MB'):
+                with self.assertRaisesRegex(ValueError, '10MB'):
                     browser_fetch.request({'url': 'https://jable.tv/'})
 
 

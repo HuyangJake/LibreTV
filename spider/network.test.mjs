@@ -4,17 +4,18 @@ import { createPublicFetch } from './network.mjs';
 
 const publicLookup = async () => [{ address: '104.20.42.172' }];
 
-test('Jable XPTV requests use browser TLS while script downloads stay native', async () => {
+test('Cloudflare-protected XPTV origins use browser TLS while script downloads stay native', async () => {
   const calls = [];
   const request = (kind) => async (url) => {
     calls.push([kind, url]);
     return new Response('<div>video results</div>');
   };
   const fetch = createPublicFetch({ lookup: publicLookup, nativeFetch: request('native'), browserFetch: request('browser') });
-  await fetch('https://raw.githubusercontent.com/example/jable.js');
-  const result = await fetch('https://jable.tv/search/SSIS/?mode=async');
-  assert.deepEqual(calls.map(([kind]) => kind), ['native', 'browser']);
-  assert.equal(result.data, '<div>video results</div>');
+  await fetch('https://raw.githubusercontent.com/example/missav.js');
+  await fetch('https://jable.tv/search/SSIS/?mode=async');
+  await fetch('https://missav.ai/search/SSIS');
+  await fetch('https://surrit.com/uuid/playlist.m3u8');
+  assert.deepEqual(calls.map(([kind]) => kind), ['native', 'browser', 'browser', 'browser']);
 });
 
 test('browser transport cannot access private DNS addresses or redirect to them', async () => {

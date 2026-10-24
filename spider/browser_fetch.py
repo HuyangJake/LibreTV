@@ -1,26 +1,45 @@
-"""A bounded, public-only Jable HTTP transport with a browser TLS fingerprint."""
+"""A bounded, public-only HTTP transport with a browser TLS fingerprint for Cloudflare-protected sites."""
 import base64
 import ipaddress
 import json
 import socket
+import os
 import sys
 from urllib.parse import urlsplit
 
-MAX_BODY = 4_000_000
+MAX_BODY = 10_000_000
+DEFAULT_ALLOWED_HOSTS = {'jable.tv', 'missav.ai', 'surrit.com'}
+env_hosts = {h.strip().lower() for h in os.environ.get('SPIDER_BROWSER_HOSTS', '').split(',') if h.strip()}
+ALLOWED_HOSTS = DEFAULT_ALLOWED_HOSTS | env_hosts
+
+
+def is_allowed_host(hostname):
+    if not hostname:
+        return False
+    host = hostname.lower()
+    return host in ALLOWED_HOSTS or any(host.endswith('.' + h) for h in ALLOWED_HOSTS)
+
+
+def is_global_address(addr):
+    ip = ipaddress.ip_address(addr)
+    if ip.version == 4 and ip in ipaddress.ip_network('198.18.0.0/15'):
+        return True
+    return ip.is_global
 
 
 def public_address(url):
     target = urlsplit(url)
-    if (target.scheme != 'https' or target.hostname != 'jable.tv'
+    if (target.scheme != 'https' or not is_allowed_host(target.hostname)
             or target.port not in (None, 443) or target.username or target.password):
-        raise ValueError('浏览器客户端仅允许 https://jable.tv')
+        raise ValueError('浏览器客户端仅允许受支持的域名')
     addresses = list(dict.fromkeys(item[4][0] for item in socket.getaddrinfo(
         target.hostname, 443, type=socket.SOCK_STREAM)))
-    if not addresses or any(not ipaddress.ip_address(addr).is_global for addr in addresses):
+    if not addresses or any(not is_global_address(addr) for addr in addresses):
         raise ValueError('Spider 禁止访问内网和保留地址')
     # Pin the validated address in libcurl: a second DNS lookup must not rebind it.
     address = next((addr for addr in addresses if ':' not in addr), addresses[0])
-    return f'jable.tv:443:[{address}]' if ':' in address else f'jable.tv:443:{address}'
+    host_port = f'{target.hostname}:443'
+    return f'{host_port}:[{address}]' if ':' in address else f'{host_port}:{address}'
 
 
 def request(payload):
@@ -36,7 +55,7 @@ def request(payload):
         nonlocal size
         size += len(chunk)
         if size > MAX_BODY:
-            raise ValueError('Spider 响应超过 4MB')
+            raise ValueError('Spider 响应超过 10MB')
         chunks.append(chunk)
         return len(chunk)
 

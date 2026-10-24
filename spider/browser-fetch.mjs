@@ -15,7 +15,7 @@ export async function browserTLSFetch(url, init = {}) {
     init.signal?.addEventListener('abort', abort, { once: true });
     child.stdout.on('data', (chunk) => {
       size += chunk.length;
-      if (size > 6_000_000) { child.kill('SIGKILL'); reject(new Error('Spider 响应超过 4MB')); }
+      if (size > 16_000_000) { child.kill('SIGKILL'); reject(new Error('Spider 响应超过 10MB')); }
       else chunks.push(chunk);
     });
     child.on('error', () => reject(new Error('Spider 浏览器客户端不可用，请更新 Spider 镜像')));
@@ -32,6 +32,6 @@ export async function browserTLSFetch(url, init = {}) {
   });
   if (output.error) throw new Error(output.error);
   const body = Buffer.from(output.body, 'base64');
-  if (body.length > 4_000_000) throw new Error('Spider 响应超过 4MB');
+  if (body.length > 10_000_000) throw new Error('Spider 响应超过 10MB');
   return new Response([204, 205, 304].includes(output.status) ? null : body, { status: output.status, headers: output.headers });
 }
