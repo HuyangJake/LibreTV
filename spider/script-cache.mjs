@@ -16,11 +16,12 @@ export function createScriptLoader({ fetchScript = publicFetch, now = Date.now, 
     const load = (async () => {
       const start = now();
       let loaded;
-      try { loaded = await fetchScript(url); }
+      const download = () => fetchScript(url, { signal: AbortSignal.timeout(12000) });
+      try { loaded = await download(); }
       catch (error) {
         // Retry only quick connection failures, keeping slow misses bounded.
         if (now() - start > 3000) throw error;
-        loaded = await fetchScript(url);
+        loaded = await download();
       }
       if (!loaded.response.ok) throw new Error(`脚本下载 HTTP ${loaded.response.status}`);
       const code = loaded.data;

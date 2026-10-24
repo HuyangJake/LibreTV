@@ -13,11 +13,14 @@ export function createPublicFetch({ lookup = dns.lookup, nativeFetch = globalThi
 return async function publicFetch(raw, init = {}) {
   let url = raw;
   for (let n = 0; n < 6; n++) {
+    init.signal?.throwIfAborted();
     const target = await assertPublic(url, lookup);
     // XPTV's legacy User-Agent alone cannot reproduce a browser TLS handshake.
     // Only this exact public origin needs the additional transport.
     const transport = target.origin === 'https://jable.tv' ? browserFetch : nativeFetch;
-    const response = await transport(url, { ...init, redirect: 'manual', signal: AbortSignal.timeout(12000) });
+    const timeout = AbortSignal.timeout(12000);
+    const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
+    const response = await transport(url, { ...init, redirect: 'manual', signal });
     if ([301,302,303,307,308].includes(response.status) && response.headers.get('location')) {
       const next = new URL(response.headers.get('location'), url).href;
       if (new URL(next).origin !== new URL(url).origin) {

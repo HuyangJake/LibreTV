@@ -52,3 +52,14 @@ test('lookalike domains do not receive the Jable transport', async () => {
   });
   assert.equal((await fetch('https://jable.tv.example/')).data, 'ok');
 });
+
+test('a caller deadline stops the whole redirect chain', async () => {
+  const controller = new AbortController();
+  let calls = 0;
+  const fetch = createPublicFetch({ lookup: publicLookup, nativeFetch: async () => {
+    calls++; controller.abort(new Error('script download deadline'));
+    return new Response(null, { status: 302, headers: { location: 'https://cdn.example/next' } });
+  } });
+  await assert.rejects(fetch('https://cdn.example/start', { signal: controller.signal }), /download deadline/);
+  assert.equal(calls, 1);
+});
