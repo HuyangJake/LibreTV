@@ -253,6 +253,7 @@ CI 校验通过后自动构建并推送 `ghcr.io/librespark/libretv:<版本>`（
 - 观看历史、收藏、播放偏好仍是设备本地数据。所有共享用户使用原有站点密码；此版本没有多用户隔离。
 - 在「设置 → 点播源 → 添加」中填写 XPTV `.js` 链接即可。TVBOX 订阅中 `type: 3`、`ext` 为 `.js` 的条目也会导入。脚本必须实现 XPTV 的 `search/getTracks/getPlayinfo` 接口；不是所有 JS、TVBOX JAR、Python Spider 都兼容。
 - 已适配 `createCheerio`、`createCryptoJS`、`argsify/jsonify`、`$fetch.get/post`。脚本的播放请求头会随 HLS 分片、密钥请求转发。需要 Safari/WebView、人机验证、网盘登录或原生扩展的脚本不在兼容范围，错误会明确显示。
+- Jable 的 XPTV 脚本请求会使用 `curl-cffi` 的浏览器 TLS/HTTP 指纹，兼容普通 Node HTTP 客户端收到 403 验证页的情况。此传输仅用于 `https://jable.tv`，仍校验公网地址、固定已校验的 DNS 结果，并逐跳检查重定向；不会启动浏览器或自动操作验证码。网站后续若强制交互验证，仍可能不可用。
 
 部署（Docker Compose，单实例）：
 
@@ -269,3 +270,5 @@ docker compose -f docker-compose.nas.yml up -d --no-build
 Spider 是独立的非 root 容器，限制内存、CPU、进程数和运行时间，不挂载 NAS 文件或 Docker socket，不开放主机端口。**仅加载可信脚本**：Node VM 不是安全沙箱，容器隔离不能保证任意恶意脚本安全。Spider 可能访问互联网，部署者仍需信任脚本作者。源站的网络可达性、反爬策略、失效地址等会影响实际搜索和播放；兼容接口不等于保证每个第三方源始终可用。
 
 验证命令：`npm ci && npm run typecheck && npm test && npm run build`；Spider：`npm ci --prefix spider && npm test --prefix spider`。
+
+Jable 实际连通性验证：设置 `LIBRETV_PASSWORD`（可选 `LIBRETV_URL`，默认 `http://192.168.1.114:18080`）后，执行 `node scripts/check-jable.mjs`。它检查搜索、详情、HLS 清单、AES 密钥（若存在）与一小段视频数据；不打印密码、会话 Cookie、影片标题或签名播放地址。
