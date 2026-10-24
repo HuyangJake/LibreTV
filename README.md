@@ -1,6 +1,6 @@
 # LibreTV
 
-LibreTV Next.js 迁移版：免费在线视频聚合搜索与观看平台。基于 Next.js 15（App Router）+ TypeScript + Tailwind CSS，播放内核为 ArtPlayer + hls.js，支持亮暗双主题。
+LibreTV NAS 增强版：支持跨设备共享数据源配置和 XPTV JavaScript Spider 的视频聚合搜索与播放平台。基于 Next.js 15（App Router）+ TypeScript + Tailwind CSS，播放内核为 ArtPlayer + hls.js，支持亮暗双主题。
 
 > 🏠 **官网**：[LibreTV 官网](https://libretv.is-an.org/)
 >
@@ -22,7 +22,7 @@ LibreTV Next.js 迁移版：免费在线视频聚合搜索与观看平台。基�
 - **进度同步**：播放进度与观看历史存于本机 IndexedDB，精确到秒的续播
 - **换源测速**：跨源搜索同名资源并测速排序，一键切换保留集数位置
 - **源测试与订阅**：一键探活点播源与直播源（支持批量测活）；搜索时自动记录各源健康度，连续失败的源按阶梯时长自动停用（30 分钟 → 24 小时 → 长期），可一键恢复；订阅远程源列表（一份 LibreTV-SourceList JSON 可同时下发点播源与直播源，也可直接填 TVBOX 配置地址，自动导入其中可直接使用的接口），可导出分享
-- **首页推荐**：豆瓣（电影/剧集分类浏览）、Bangumi 新番放送表或影视榜单（豆瓣周榜 + 百度热播，经 60s API），设置中切换；均服务端直连 + 缓存，Bangumi/榜单免 key 免配置（`60S_API_BASE` 可指向自部署 60s 实例）
+- **首页推荐**：支持电影与剧集分类浏览、新番放送表和影视榜单，可在设置中切换；推荐数据由服务端获取并缓存，部分推荐模式支持自部署接口
 - **PWA**：可安装到桌面 / 主屏幕，亮暗双主题无首屏闪烁
 
 ## 部署
@@ -253,7 +253,7 @@ CI 校验通过后自动构建并推送 `ghcr.io/librespark/libretv:<版本>`（
 - 观看历史、收藏、播放偏好仍是设备本地数据。所有共享用户使用原有站点密码；此版本没有多用户隔离。
 - 在「设置 → 点播源 → 添加」中填写 XPTV `.js` 链接即可。TVBOX 订阅中 `type: 3`、`ext` 为 `.js` 的条目也会导入。脚本必须实现 XPTV 的 `search/getTracks/getPlayinfo` 接口；不是所有 JS、TVBOX JAR、Python Spider 都兼容。
 - 已适配 `createCheerio`、`createCryptoJS`、`argsify/jsonify`、`$fetch.get/post`。脚本的播放请求头会随 HLS 分片、密钥请求转发。需要 Safari/WebView、人机验证、网盘登录或原生扩展的脚本不在兼容范围，错误会明确显示。
-- Jable 的 XPTV 脚本请求会使用 `curl-cffi` 的浏览器 TLS/HTTP 指纹，兼容普通 Node HTTP 客户端收到 403 验证页的情况。此传输仅用于 `https://jable.tv`，仍校验公网地址、固定已校验的 DNS 结果，并逐跳检查重定向；不会启动浏览器或自动操作验证码。网站后续若强制交互验证，仍可能不可用。
+- Spider 服务为内置白名单中的请求提供浏览器 TLS/HTTP 指纹兼容能力，减少普通 HTTP 客户端被拒绝的情况。请求仍校验公网地址、固定已校验的 DNS 结果，并逐跳检查重定向；不会启动浏览器或自动操作验证码。数据源若强制交互验证，仍可能不可用。
 
 部署（Docker Compose，单实例）：
 
@@ -271,4 +271,4 @@ Spider 是独立的非 root 容器，限制内存、CPU、进程数和运行时�
 
 验证命令：`npm ci && npm run typecheck && npm test && npm run build`；Spider：`npm ci --prefix spider && npm test --prefix spider`。
 
-Jable 实际连通性验证：设置 `LIBRETV_PASSWORD`（可选 `LIBRETV_URL`，默认 `http://192.168.1.114:18080`）后，执行 `node scripts/check-jable.mjs`。它检查搜索、详情、HLS 清单、AES 密钥（若存在）与一小段视频数据；不打印密码、会话 Cookie、影片标题或签名播放地址。
+实际连通性请使用自行配置的数据源，依次检查搜索、详情、HLS 清单、密钥（若存在）及视频分片。自动化检查与日志应避免输出密码、会话 Cookie、影片标题或签名播放地址。
