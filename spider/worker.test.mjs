@@ -19,3 +19,12 @@ test('interactive browser dependency gives an explicit error',async()=>{const re
 test('blocks private, mapped and reserved addresses',async()=>{
   for(const url of ['http://127.0.0.1','http://192.168.1.114','http://[::1]','http://[::ffff:127.0.0.1]','file:///etc/passwd','http://169.254.169.254']) await assert.rejects(assertPublic(url));
 });
+test('XPTV category listing receives its category ext and requested page',async()=>{
+  const result=await run('function getCards(ext){const e=argsify(ext);return jsonify({list:[{vod_name:"Example",ext:e}]})}','getCards',{typeurl:'https://example.com/category',page:2});
+  assert.equal(result.result.list[0].ext.page,2);
+  assert.equal(result.result.list[0].ext.typeurl,'https://example.com/category');
+});
+test('search-only extensions give an actionable browsing error',async()=>{
+  const result=await run('function search(){return jsonify({list:[]})}','getConfig');
+  assert.match(result.error,/未提供分类浏览功能/);
+});

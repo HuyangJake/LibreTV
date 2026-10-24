@@ -1,6 +1,7 @@
 'use client';
 
 import type { SearchResponse, SearchStreamEvent, SourceSearchOutcome, VideoDetail, DoubanResponse, BangumiCalendarResponse, AuthStatusResponse, SourceConfig, SearchResultItem, LivePlaylistResponse, LiveEpgResponse, SourceListPayload, QualityProbeItem, QualityProbeResult } from './types';
+import type { BrowseCategoriesResponse, BrowseResponse } from './types';
 
 /**
  * 客户端 API 封装。401 时触发全局事件打开登录框，
@@ -145,6 +146,18 @@ export const api = {
     const sp = new URLSearchParams({ id, source: JSON.stringify(source) });
     return request<VideoDetail>(`/api/detail?${sp.toString()}`, { signal });
   },
+
+  browseCategories: (source: SourceConfig, filterAdult: boolean, signal?: AbortSignal) =>
+    request<BrowseCategoriesResponse>('/api/browse', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'categories', source, filterAdult }), signal,
+    }),
+
+  browseVideos: (source: SourceConfig, category: string, page: number, filterAdult: boolean, signal?: AbortSignal) =>
+    request<BrowseResponse>('/api/browse', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'videos', source, category, page, filterAdult }), signal,
+    }),
 
   /**
    * 批量画质探测（NDJSON 流式）：展开来源面板时逐条回调，先到的源先显示画质。

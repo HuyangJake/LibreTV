@@ -16,6 +16,7 @@ import { useToast } from '@/components/toast';
 import { EmptyState } from '@/components/states';
 import { Icon } from '@/components/icon';
 import { SiteFooter } from '@/components/site-footer';
+import { SourceBrowseEntry } from '@/components/source-browser';
 
 /**
  * 首页：搜索（URL ?s= 驱动，可后退/分享）+ 豆瓣推荐。
@@ -279,6 +280,8 @@ function HomeContent() {
             )}
           </div>
         </section>
+
+        {!urlQuery && <SourceBrowseEntry />}
 
         {/* 搜索结果 */}
         {urlQuery && (

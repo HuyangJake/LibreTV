@@ -6,7 +6,7 @@ import { publicFetch } from './network.mjs';
 // The container is the isolation boundary, NOT node:vm. No NAS mounts or secrets.
 process.once('message', async ({ script, method, ext, code }) => {
   try {
-    if (!['search', 'getTracks', 'getPlayinfo', 'getConfig'].includes(method)) throw new Error('不支持的 Spider 方法');
+    if (!['search', 'getTracks', 'getPlayinfo', 'getConfig', 'getCards'].includes(method)) throw new Error('不支持的 Spider 方法');
     if (!code) {
       const loaded = await publicFetch(script);
       if (!loaded.response.ok) throw new Error(`脚本下载 HTTP ${loaded.response.status}`);
@@ -37,6 +37,9 @@ process.once('message', async ({ script, method, ext, code }) => {
       __ext: JSON.stringify(ext || {}),
     });
     new vm.Script(code).runInContext(context, { timeout: 2000 });
+    if (!new vm.Script(`typeof ${method} === 'function'`).runInContext(context, { timeout: 2000 })) {
+      throw new Error(['getConfig', 'getCards'].includes(method) ? '这个源未提供分类浏览功能，请使用首页搜索' : 'Spider 缺少所需的接口');
+    }
     const result = await new vm.Script(`${method}(__ext)`).runInContext(context, { timeout: 2000 });
     const value = typeof result === 'string' ? JSON.parse(result) : result;
     if (JSON.stringify(value).length > 2_000_000) throw new Error('Spider 结果过大');

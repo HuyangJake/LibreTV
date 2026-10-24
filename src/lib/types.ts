@@ -105,6 +105,25 @@ export interface SearchResponse {
   failures: { sourceKey: string; error: string; timedOut?: boolean }[];
 }
 
+/** 单源片库：分类标识由服务端生成，客户端不解释 Spider 参数。 */
+export interface BrowseCategory {
+  id: string;
+  name: string;
+}
+
+export interface BrowseCategoriesResponse {
+  categories: BrowseCategory[];
+}
+
+export interface BrowseResponse {
+  list: SearchResultItem[];
+  page: number;
+  pageCount?: number;
+  total?: number;
+  /** 未提供总页数的源，读到空页后停止继续翻页。 */
+  hasMore: boolean;
+}
+
 /** /api/search?stream=1 的 NDJSON 事件：逐源推送 + 最终聚合 */
 export type SearchStreamEvent =
   | ({ type: 'source' } & SourceSearchOutcome)

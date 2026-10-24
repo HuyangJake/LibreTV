@@ -16,6 +16,7 @@ LibreTV NAS 增强版：支持跨设备共享数据源配置和 XPTV JavaScript 
 ## 核心特性
 
 - **聚合搜索**：多采集站服务端并行搜索
+- **按源浏览**：从首页或顶栏进入源片库，选择数据源后查看分类与影片列表，支持翻页、详情和播放
 - **跨源同名聚合**：同名影片合并为一张卡片，展开即可比较和选择各来源
 - **HLS 播放**：ArtPlayer + hls.js，广告分片过滤、自动连播、倍速、快捷键、移动端长按 3 倍速
 - **直播 / IPTV**：M3U 订阅解析，`/live` 页面按分组浏览、搜索频道并站内播放（HLS + HTTP-FLV），支持 XMLTV 节目单（EPG）与频道收藏；直播流经专用长连接代理（`/api/live/stream`）转发
@@ -246,12 +247,13 @@ CI 校验通过后自动构建并推送 `ghcr.io/librespark/libretv:<版本>`（
 ☕ 觉得有用的话，可以到 [AFDIAN](https://afdian.com/a/veehub) 请我喝杯咖啡。
 ## NAS fork：共享源与 XPTV Spider
 
-本 fork 基于官方 2.19.5，改造版本为 `2.19.5-nas.1`；开发分支为 `nas`。
+本 fork 基于官方 2.19.5，改造版本为 `2.19.5-nas.2`；开发分支为 `nas`。
 
 - 同一 NAS 的已登录设备共享自定义点播源、订阅、直播源和启停选择。设置变更约 2 秒内保存至 NAS，其他已打开的设备自动拉取。
 - 首个登录浏览器将现有源配置迁移到服务端；后续设备以 NAS 配置为准。本机旧配置保留在 `libretv-source-migration-backup`。并发编辑使用版本检查，冲突时加载 NAS 最新配置，本次修改保留在 `libretv-source-conflict-backup`，请重新编辑。
 - 观看历史、收藏、播放偏好仍是设备本地数据。所有共享用户使用原有站点密码；此版本没有多用户隔离。
 - 在「设置 → 点播源 → 添加」中填写 XPTV `.js` 链接即可。TVBOX 订阅中 `type: 3`、`ext` 为 `.js` 的条目也会导入。脚本必须实现 XPTV 的 `search/getTracks/getPlayinfo` 接口；不是所有 JS、TVBOX JAR、Python Spider 都兼容。
+- 「源片库」可单独进入已配置的数据源，查看分类与分页影片列表。标准采集接口使用分类和最新更新列表；支持浏览的 XPTV 脚本需另提供 `getConfig/getCards`。不提供列表的源会提示使用搜索。分类和页码保存在页面链接中，返回时可恢复；内容过滤与订阅启停设置仍然生效。
 - 已适配 `createCheerio`、`createCryptoJS`、`argsify/jsonify`、`$fetch.get/post`。脚本的播放请求头会随 HLS 分片、密钥请求转发。需要 Safari/WebView、人机验证、网盘登录或原生扩展的脚本不在兼容范围，错误会明确显示。
 - Spider 服务为内置白名单中的请求提供浏览器 TLS/HTTP 指纹兼容能力，减少普通 HTTP 客户端被拒绝的情况。请求仍校验公网地址、固定已校验的 DNS 结果，并逐跳检查重定向；不会启动浏览器或自动操作验证码。数据源若强制交互验证，仍可能不可用。
 
