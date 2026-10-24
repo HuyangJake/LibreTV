@@ -1,6 +1,15 @@
 import dns from 'node:dns/promises';
 import ipaddr from 'ipaddr.js';
 import { browserTLSFetch } from './browser-fetch.mjs';
+
+try {
+  if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.ALL_PROXY ||
+      process.env.http_proxy || process.env.https_proxy || process.env.all_proxy) {
+    const { EnvHttpProxyAgent, setGlobalDispatcher } = await import('undici');
+    setGlobalDispatcher(new EnvHttpProxyAgent());
+  }
+} catch {}
+
 export async function assertPublic(raw, lookup = dns.lookup) {
   const u = new URL(raw);
   if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) throw new Error('Spider 只允许公网 HTTP(S)');
@@ -9,6 +18,7 @@ export async function assertPublic(raw, lookup = dns.lookup) {
   if (!addresses.length || addresses.some(({address}) => {
     const p = ipaddr.process(address);
     if (p.range() === 'unicast') return false;
+    if (p.range() === 'teredo') return false;
     if (p.kind() === 'ipv4' && (p.octets[0] === 198 && (p.octets[1] === 18 || p.octets[1] === 19))) return false;
     return true;
   })) throw new Error('Spider 禁止访问内网和保留地址');

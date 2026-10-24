@@ -24,7 +24,15 @@ def is_global_address(addr):
     ip = ipaddress.ip_address(addr)
     if ip.version == 4 and ip in ipaddress.ip_network('198.18.0.0/15'):
         return True
+    if ip.version == 6 and ip in ipaddress.ip_network('2001::/32'):
+        return True
     return ip.is_global
+
+
+PROXY = (os.environ.get('SPIDER_PROXY') or os.environ.get('HTTPS_PROXY')
+         or os.environ.get('https_proxy') or os.environ.get('HTTP_PROXY')
+         or os.environ.get('http_proxy') or os.environ.get('ALL_PROXY')
+         or os.environ.get('all_proxy'))
 
 
 def public_address(url):
@@ -32,10 +40,17 @@ def public_address(url):
     if (target.scheme != 'https' or not is_allowed_host(target.hostname)
             or target.port not in (None, 443) or target.username or target.password):
         raise ValueError('浏览器客户端仅允许受支持的域名')
-    addresses = list(dict.fromkeys(item[4][0] for item in socket.getaddrinfo(
-        target.hostname, 443, type=socket.SOCK_STREAM)))
-    if not addresses or any(not is_global_address(addr) for addr in addresses):
+    try:
+        addresses = list(dict.fromkeys(item[4][0] for item in socket.getaddrinfo(
+            target.hostname, 443, type=socket.SOCK_STREAM)))
+    except socket.gaierror:
+        addresses = []
+    if addresses and any(not is_global_address(addr) for addr in addresses):
         raise ValueError('Spider 禁止访问内网和保留地址')
+    if not addresses:
+        if PROXY:
+            return None
+        raise ValueError('无法解析目标域名')
     # Pin the validated address in libcurl: a second DNS lookup must not rebind it.
     address = next((addr for addr in addresses if ':' not in addr), addresses[0])
     host_port = f'{target.hostname}:443'
@@ -59,7 +74,12 @@ def request(payload):
         chunks.append(chunk)
         return len(chunk)
 
-    with requests.Session(trust_env=False, curl_options={CurlOpt.RESOLVE: [resolve]}) as client:
+    curl_options = {CurlOpt.RESOLVE: [resolve]} if resolve else {}
+    session_kwargs = {'trust_env': False, 'curl_options': curl_options}
+    if PROXY:
+        session_kwargs['proxies'] = {'http': PROXY, 'https': PROXY}
+
+    with requests.Session(**session_kwargs) as client:
         response = client.request(payload.get('method', 'GET'), payload['url'],
                                   headers=headers, data=payload.get('body'),
                                   impersonate='chrome', timeout=12, allow_redirects=False,

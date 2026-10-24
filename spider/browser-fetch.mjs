@@ -4,8 +4,12 @@ import { fileURLToPath } from 'node:url';
 // No shell interpolation; scripts and credentials never appear in process args.
 export async function browserTLSFetch(url, init = {}) {
   const output = await new Promise((resolve, reject) => {
+    const env = {};
+    for (const key of ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'SPIDER_PROXY', 'SPIDER_BROWSER_HOSTS']) {
+      if (process.env[key]) env[key] = process.env[key];
+    }
     const child = spawn('/opt/browser-client/bin/python3', [fileURLToPath(new URL('./browser_fetch.py', import.meta.url))], {
-      env: {}, stdio: ['pipe', 'pipe', 'ignore'],
+      env, stdio: ['pipe', 'pipe', 'ignore'],
     });
     let size = 0;
     const chunks = [];

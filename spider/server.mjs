@@ -42,7 +42,11 @@ const server = http.createServer(async (req, res) => {
     const { script, method, ext } = JSON.parse(raw);
     const deadline = Date.now() + 20000;
     const code = await loadScript(script);
-    child = fork(new URL('./worker.mjs', import.meta.url), [], { execArgv: ['--max-old-space-size=96'], env: {}, stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
+    const env = {};
+    for (const key of ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'SPIDER_PROXY', 'SPIDER_BROWSER_HOSTS']) {
+      if (process.env[key]) env[key] = process.env[key];
+    }
+    child = fork(new URL('./worker.mjs', import.meta.url), [], { execArgv: ['--max-old-space-size=96'], env, stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
     const result = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('Spider 执行超时')); }, Math.max(1, deadline - Date.now()));
       child.once('message', (message) => { clearTimeout(timer); resolve(message); });

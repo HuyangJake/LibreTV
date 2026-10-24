@@ -12,6 +12,10 @@ services:
       SPIDER_URL: http://spider:8787
       DEFAULT_SOURCES: ${DEFAULT_SOURCES:-[]}
       DEFAULT_SUBSCRIPTIONS: ${DEFAULT_SUBSCRIPTIONS:-[]}
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      ALL_PROXY: ${ALL_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
     volumes:
       - libretv-data:/app/data
     depends_on:
@@ -32,6 +36,13 @@ services:
     pids_limit: 64
     mem_limit: 384m
     cpus: 1.0
+    environment:
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      ALL_PROXY: ${ALL_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+      SPIDER_PROXY: ${SPIDER_PROXY:-}
+      SPIDER_BROWSER_HOSTS: ${SPIDER_BROWSER_HOSTS:-}
     # No host ports, NAS volumes, Docker socket or application secrets.
     logging:
       driver: json-file
