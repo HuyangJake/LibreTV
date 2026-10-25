@@ -56,6 +56,37 @@ class BrowserFetchTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, '10MB'):
                     browser_fetch.request({'url': 'https://jable.tv/'})
 
+    def test_xvideos_transparent_mirror_and_proxy_resolve(self):
+        requested_urls = []
+
+        class Session:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+            def __enter__(self):
+                return self
+            def __exit__(self, *_args):
+                pass
+            def request(self, method, url, **kwargs):
+                requested_urls.append((url, self.kwargs.get('curl_options', {})))
+                kwargs['content_callback'](b'<html>xvideos</html>')
+                return types.SimpleNamespace(status_code=200, headers={'Content-Type': 'text/html'})
+
+        fake = types.ModuleType('curl_cffi')
+        fake.requests = types.SimpleNamespace(Session=Session)
+        fake.CurlOpt = types.SimpleNamespace(RESOLVE='resolve')
+        with patch.dict(sys.modules, {'curl_cffi': fake}), patch('socket.getaddrinfo',
+                return_value=[(socket.AF_INET, 0, 0, '', ('64.13.192.76', 443))]):
+            # Test direct mode (no proxy): rewrites www.xvideos.com to www.xvideos.es and pins DNS
+            browser_fetch.request({'url': 'https://www.xvideos.com/?k=japan'})
+            self.assertEqual(requested_urls[-1][0], 'https://www.xvideos.es/?k=japan')
+            self.assertEqual(requested_urls[-1][1]['resolve'], ['www.xvideos.es:443:64.13.192.76'])
+
+            # Test proxy mode: does not pin DNS to prevent local DNS poisoning
+            with patch.object(browser_fetch, 'PROXY', 'http://192.168.1.130:1082'):
+                browser_fetch.request({'url': 'https://www.xvideos.com/?k=japan'})
+                self.assertEqual(requested_urls[-1][0], 'https://www.xvideos.es/?k=japan')
+                self.assertEqual(requested_urls[-1][1], {})
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,7 +14,7 @@ export function getBrowserTLSHosts(): string[] {
   const env = (process.env.SPIDER_BROWSER_HOSTS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
   return Array.from(new Set([
     'jable.tv', 'missav.ai', 'surrit.com',
-    'xvideos.com', 'xvideos-cdn.com',
+    'xvideos.com', 'xvideos.es', 'xvideos.in', 'xvideos.red', 'xvideos-cdn.com',
     'pornhub.com', 'phncdn.com',
     ...env,
   ]));

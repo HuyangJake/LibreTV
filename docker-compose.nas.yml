@@ -12,10 +12,12 @@ services:
       SPIDER_URL: http://spider:8787
       DEFAULT_SOURCES: ${DEFAULT_SOURCES:-[]}
       DEFAULT_SUBSCRIPTIONS: ${DEFAULT_SUBSCRIPTIONS:-[]}
+      NODE_OPTIONS: ${NODE_OPTIONS:---use-env-proxy}
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       ALL_PROXY: ${ALL_PROXY:-}
-      NO_PROXY: ${NO_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-127.0.0.1,localhost,spider,libretv}
+      no_proxy: ${NO_PROXY:-127.0.0.1,localhost,spider,libretv}
     volumes:
       - libretv-data:/app/data
     depends_on:
@@ -40,7 +42,8 @@ services:
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       ALL_PROXY: ${ALL_PROXY:-}
-      NO_PROXY: ${NO_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-127.0.0.1,localhost,spider,libretv}
+      no_proxy: ${NO_PROXY:-127.0.0.1,localhost,spider,libretv}
       SPIDER_PROXY: ${SPIDER_PROXY:-}
       SPIDER_BROWSER_HOSTS: ${SPIDER_BROWSER_HOSTS:-}
     # No host ports, NAS volumes, Docker socket or application secrets.

@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 MAX_BODY = 10_000_000
 DEFAULT_ALLOWED_HOSTS = {
     'jable.tv', 'missav.ai', 'surrit.com',
-    'xvideos.com', 'xvideos-cdn.com',
+    'xvideos.com', 'xvideos.es', 'xvideos.in', 'xvideos.red', 'xvideos-cdn.com',
     'pornhub.com', 'phncdn.com',
 }
 env_hosts = {h.strip().lower() for h in os.environ.get('SPIDER_BROWSER_HOSTS', '').split(',') if h.strip()}
@@ -63,35 +63,53 @@ def public_address(url):
 
 def request(payload):
     from curl_cffi import requests, CurlOpt
-    resolve = public_address(payload['url'])
+    raw_url = payload['url']
+    target = urlsplit(raw_url)
+    hostname = (target.hostname or '').lower()
+
+    # XVideos portal is blocked by SNI filtering; transparently route to official mirrors
+    mirrors = ['https://www.xvideos.es', 'https://www.xvideos.in'] if hostname in ('xvideos.com', 'www.xvideos.com') else [None]
+
     headers = {k: v for k, v in payload.get('headers', {}).items()
                if k.lower() not in ('user-agent', 'host', 'connection', 'content-length', 'accept-encoding')
                and not k.lower().startswith('sec-')}
-    chunks = []
-    size = 0
+    last_err = None
 
-    def receive(chunk):
-        nonlocal size
-        size += len(chunk)
-        if size > MAX_BODY:
-            raise ValueError('Spider 响应超过 10MB')
-        chunks.append(chunk)
-        return len(chunk)
+    for mirror_base in mirrors:
+        url = raw_url.replace(f'https://{target.hostname}', mirror_base, 1) if mirror_base else raw_url
+        resolve = public_address(url)
+        chunks = []
+        size = 0
 
-    curl_options = {CurlOpt.RESOLVE: [resolve]} if resolve else {}
-    session_kwargs = {'trust_env': False, 'curl_options': curl_options}
-    if PROXY:
-        session_kwargs['proxies'] = {'http': PROXY, 'https': PROXY}
+        def receive(chunk):
+            nonlocal size
+            size += len(chunk)
+            if size > MAX_BODY:
+                raise ValueError('Spider 响应超过 10MB')
+            chunks.append(chunk)
+            return len(chunk)
 
-    with requests.Session(**session_kwargs) as client:
-        response = client.request(payload.get('method', 'GET'), payload['url'],
-                                  headers=headers, data=payload.get('body'),
-                                  impersonate='chrome', timeout=12, allow_redirects=False,
-                                  content_callback=receive)
-        return {'status': response.status_code,
-                'headers': {k: v for k, v in response.headers.items()
-                            if k.lower() not in ('content-encoding', 'content-length', 'transfer-encoding')},
-                'body': base64.b64encode(b''.join(chunks)).decode('ascii')}
+        curl_options = {CurlOpt.RESOLVE: [resolve]} if (resolve and not PROXY) else {}
+        session_kwargs = {'trust_env': False, 'curl_options': curl_options}
+        if PROXY:
+            session_kwargs['proxies'] = {'http': PROXY, 'https': PROXY}
+
+        try:
+            with requests.Session(**session_kwargs) as client:
+                response = client.request(payload.get('method', 'GET'), url,
+                                          headers=headers, data=payload.get('body'),
+                                          impersonate='chrome', timeout=12, allow_redirects=False,
+                                          content_callback=receive)
+                return {'status': response.status_code,
+                        'headers': {k: v for k, v in response.headers.items()
+                                    if k.lower() not in ('content-encoding', 'content-length', 'transfer-encoding')},
+                        'body': base64.b64encode(b''.join(chunks)).decode('ascii')}
+        except Exception as err:
+            last_err = err
+            if not mirror_base:
+                raise
+    if last_err:
+        raise last_err
 
 
 if __name__ == '__main__':
