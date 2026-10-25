@@ -25,6 +25,9 @@ it('recognizes domains requiring browser TLS transport', () => {
   expect(isBrowserTLSHost('https://missav.ai/dm265')).toBe(true);
   expect(isBrowserTLSHost('https://surrit.com/uuid/playlist.m3u8')).toBe(true);
   expect(isBrowserTLSHost('https://cdn.surrit.com/uuid/video.m3u8')).toBe(true);
+  expect(isBrowserTLSHost('https://www.xvideos.com/video1')).toBe(true);
+  expect(isBrowserTLSHost('https://hls-cdn77.xvideos-cdn.com/uuid/hls.m3u8')).toBe(true);
+  expect(isBrowserTLSHost('https://cn.pornhub.com/view_video.php')).toBe(true);
   expect(isBrowserTLSHost('https://jable.tv.evil.com/')).toBe(false);
   expect(isBrowserTLSHost('https://normal-cms.com/video.m3u8')).toBe(false);
 });

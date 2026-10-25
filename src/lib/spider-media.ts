@@ -12,7 +12,12 @@ export function saveSpiderHeaders(headers: Record<string, string>): string {
 }
 export function getBrowserTLSHosts(): string[] {
   const env = (process.env.SPIDER_BROWSER_HOSTS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  return Array.from(new Set(['jable.tv', 'missav.ai', 'surrit.com', ...env]));
+  return Array.from(new Set([
+    'jable.tv', 'missav.ai', 'surrit.com',
+    'xvideos.com', 'xvideos-cdn.com',
+    'pornhub.com', 'phncdn.com',
+    ...env,
+  ]));
 }
 
 export function isBrowserTLSHost(rawUrl: string): boolean {

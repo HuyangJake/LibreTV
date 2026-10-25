@@ -5,6 +5,9 @@ import { browserTLSFetch } from './browser-fetch.mjs';
 try {
   if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.ALL_PROXY ||
       process.env.http_proxy || process.env.https_proxy || process.env.all_proxy) {
+    if (!process.env.NO_PROXY && !process.env.no_proxy) {
+      process.env.NO_PROXY = '127.0.0.1,localhost,spider,libretv';
+    }
     const { EnvHttpProxyAgent, setGlobalDispatcher } = await import('undici');
     setGlobalDispatcher(new EnvHttpProxyAgent());
   }
@@ -26,7 +29,12 @@ export async function assertPublic(raw, lookup = dns.lookup) {
 }
 export function getBrowserTLSHosts() {
   const env = (process.env.SPIDER_BROWSER_HOSTS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  return Array.from(new Set(['jable.tv', 'missav.ai', 'surrit.com', ...env]));
+  return Array.from(new Set([
+    'jable.tv', 'missav.ai', 'surrit.com',
+    'xvideos.com', 'xvideos-cdn.com',
+    'pornhub.com', 'phncdn.com',
+    ...env,
+  ]));
 }
 
 export function isBrowserTLSOrigin(origin) {

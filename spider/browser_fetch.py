@@ -8,7 +8,11 @@ import sys
 from urllib.parse import urlsplit
 
 MAX_BODY = 10_000_000
-DEFAULT_ALLOWED_HOSTS = {'jable.tv', 'missav.ai', 'surrit.com'}
+DEFAULT_ALLOWED_HOSTS = {
+    'jable.tv', 'missav.ai', 'surrit.com',
+    'xvideos.com', 'xvideos-cdn.com',
+    'pornhub.com', 'phncdn.com',
+}
 env_hosts = {h.strip().lower() for h in os.environ.get('SPIDER_BROWSER_HOSTS', '').split(',') if h.strip()}
 ALLOWED_HOSTS = DEFAULT_ALLOWED_HOSTS | env_hosts
 
