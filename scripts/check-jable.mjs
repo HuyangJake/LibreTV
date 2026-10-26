@@ -1,6 +1,6 @@
 // Live check: LIBRETV_PASSWORD=... node scripts/check-jable.mjs
 // Downloads only a small video sample; never prints titles, cookies or signed URLs.
-const base = new URL(process.env.LIBRETV_URL || 'http://192.168.1.114:18080');
+const base = new URL(process.env.LIBRETV_URL || 'http://localhost:18080');
 const password = process.env.LIBRETV_PASSWORD;
 if (!password) throw new Error('Set LIBRETV_PASSWORD');
 let cookie = '';
