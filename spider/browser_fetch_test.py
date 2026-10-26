@@ -15,7 +15,7 @@ class BrowserFetchTest(unittest.TestCase):
                     'https://evil.com/', 'http://missav.ai/']:
             with self.assertRaises(ValueError):
                 browser_fetch.public_address(url)
-        for address in ['127.0.0.1', '192.168.1.114', '169.254.169.254', '::1', '::ffff:127.0.0.1']:
+        for address in ['127.0.0.1', '192.168.1.1', '169.254.169.254', '::1', '::ffff:127.0.0.1']:
             with patch('socket.getaddrinfo', return_value=[(socket.AF_INET, 0, 0, '', (address, 443))]):
                 with self.assertRaisesRegex(ValueError, '内网'):
                     browser_fetch.public_address('https://jable.tv/')
@@ -82,7 +82,7 @@ class BrowserFetchTest(unittest.TestCase):
             self.assertEqual(requested_urls[-1][1]['resolve'], ['www.xvideos.es:443:64.13.192.76'])
 
             # Test proxy mode: does not pin DNS to prevent local DNS poisoning
-            with patch.object(browser_fetch, 'PROXY', 'http://192.168.1.130:1082'):
+            with patch.object(browser_fetch, 'PROXY', 'http://127.0.0.1:8888'):
                 browser_fetch.request({'url': 'https://www.xvideos.com/?k=japan'})
                 self.assertEqual(requested_urls[-1][0], 'https://www.xvideos.es/?k=japan')
                 self.assertEqual(requested_urls[-1][1], {})
