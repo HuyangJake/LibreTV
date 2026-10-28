@@ -21,13 +21,20 @@ import { Icon } from './icon';
  * 剧集点击 → /watch 路由（URL 携带定位参数，可分享、可后退）。
  */
 
-export function DetailModal({ item, onClose }: { item: SearchResultItem | null; onClose: () => void }) {
+export function DetailModal({
+  item,
+  onClose,
+}: {
+  item: SearchResultItem | null;
+  onClose: () => void;
+}) {
   const store = useAppStore();
   const router = useRouter();
   const { toast } = useToast();
   const [detail, setDetail] = useState<VideoDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [lineIndex, setLineIndex] = useState(0);
   const [reversed, setReversed] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -36,7 +43,10 @@ export function DetailModal({ item, onClose }: { item: SearchResultItem | null; 
   // 打开时把焦点移入弹窗、Tab 圈闭在弹窗内、关闭后归还焦点
   useFocusTrap(Boolean(item), panelRef);
 
-  useEffect(() => setPosterFailed(false), [item?.pic, store.imageProxyMode, store.customImageProxy]);
+  useEffect(
+    () => setPosterFailed(false),
+    [item?.pic, store.imageProxyMode, store.customImageProxy]
+  );
 
   // 弹窗打开期间锁定背景滚动
   useEffect(() => {
@@ -62,6 +72,7 @@ export function DetailModal({ item, onClose }: { item: SearchResultItem | null; 
       setError('点播源配置不存在（可能已被删除），请在设置中重新添加');
       return;
     }
+    setLineIndex(0);
     setLoading(true);
     setError('');
     abortRef.current?.abort();
@@ -90,17 +101,20 @@ export function DetailModal({ item, onClose }: { item: SearchResultItem | null; 
 
   if (!item) return null;
 
-  const episodes = detail ? (reversed ? [...detail.episodes].reverse() : detail.episodes) : [];
+  const selectedLine = detail?.lines?.[lineIndex];
+  const rawEpisodes = selectedLine?.episodes.map((e) => e.url) ?? detail?.episodes ?? [];
+  const episodes = reversed ? [...rawEpisodes].reverse() : rawEpisodes;
   const info = detail?.videoInfo;
 
   const play = (index: number) => {
-    if (!detail || !detail.episodes[index]) return;
+    if (!detail || !rawEpisodes[index]) return;
     addSearchHistory(item.name).catch(() => {});
     router.push(
       buildWatchUrl({
         sourceKey: item.sourceKey,
         vodId: item.vodId,
         index,
+        line: lineIndex,
         title: item.name,
         sourceUrl: item.sourceUrl,
       })
@@ -109,7 +123,7 @@ export function DetailModal({ item, onClose }: { item: SearchResultItem | null; 
 
   const copyLinks = async () => {
     if (!detail) return;
-    const ok = await copyToClipboard(detail.episodes.join('\n'));
+    const ok = await copyToClipboard(rawEpisodes.join('\n'));
     if (ok) toast('播放链接已复制', 'success');
     else toast('复制失败，请检查浏览器权限', 'error');
   };
@@ -151,7 +165,12 @@ export function DetailModal({ item, onClose }: { item: SearchResultItem | null; 
             aria-label="关闭"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -192,6 +211,23 @@ export function DetailModal({ item, onClose }: { item: SearchResultItem | null; 
                 </div>
               </div>
 
+              {detail.lines && (
+                <label className="block text-sm text-muted mb-4">
+                  播放线路
+                  <select
+                    aria-label="播放线路"
+                    className="input w-full mt-1"
+                    value={lineIndex}
+                    onChange={(e) => setLineIndex(Number(e.target.value))}
+                  >
+                    {detail.lines.map((line, i) => (
+                      <option key={i} value={i}>
+                        {line.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               {episodes.length > 0 ? (
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -204,7 +240,10 @@ export function DetailModal({ item, onClose }: { item: SearchResultItem | null; 
                       >
                         <Icon
                           name="arrowDown"
-                          className={cn('w-3.5 h-3.5 transition-transform', reversed && 'rotate-180')}
+                          className={cn(
+                            'w-3.5 h-3.5 transition-transform',
+                            reversed && 'rotate-180'
+                          )}
                         />
                         {reversed ? '正序排列' : '倒序排列'}
                       </button>
@@ -216,14 +255,14 @@ export function DetailModal({ item, onClose }: { item: SearchResultItem | null; 
                   </div>
                   <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-2 max-h-[40vh] overflow-y-auto scrollbar-thin pr-1">
                     {episodes.map((_, i) => {
-                      const realIndex = reversed ? detail.episodes.length - 1 - i : i;
+                      const realIndex = reversed ? rawEpisodes.length - 1 - i : i;
                       return (
                         <button
                           key={realIndex}
                           className="btn-ghost btn-sm !px-1 text-center"
                           onClick={() => play(realIndex)}
                         >
-                          {realIndex + 1}
+                          {selectedLine?.episodes[realIndex]?.name || realIndex + 1}
                         </button>
                       );
                     })}

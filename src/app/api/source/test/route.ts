@@ -1,3 +1,5 @@
+import { isCatvodSource } from '@/lib/catvod-source';
+import { searchCatvod } from '@/lib/catvod';
 import { isSpiderSource, searchSpider } from '@/lib/spider';
 import { NextResponse } from 'next/server';
 import { guardRequest } from '@/lib/api-guard';
@@ -30,13 +32,21 @@ export async function POST(req: Request) {
 
   const start = Date.now();
   try {
+    if (isCatvodSource({ url })) {
+      const list = await searchCatvod({ key: 'test', name: 'test', url }, '三体');
+      return NextResponse.json({ ok: true, ms: Date.now() - start, count: list.length });
+    }
     if (isSpiderSource({ url })) {
       const list = await searchSpider({ key: 'test', name: 'test', url }, 'test');
       return NextResponse.json({ ok: true, ms: Date.now() - start, count: list.length });
     }
     const res = await fetchUpstream(`${url}?ac=videolist&wd=test`, {
       timeoutMs: 6000,
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36', Accept: 'application/json' },
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
+        Accept: 'application/json',
+      },
     });
     const ms = Date.now() - start;
     if (!res.ok) {
@@ -49,7 +59,12 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: false,
       ms: Date.now() - start,
-      error: err instanceof Error ? (err.name === 'TimeoutError' || err.name === 'AbortError' ? '超时' : err.message) : '请求失败',
+      error:
+        err instanceof Error
+          ? err.name === 'TimeoutError' || err.name === 'AbortError'
+            ? '超时'
+            : err.message
+          : '请求失败',
     });
   }
 }

@@ -22,6 +22,7 @@ export interface HistoryEntry {
   title: string;
   pic?: string;
   episodeIndex: number;
+  lineIndex?: number;
   totalEpisodes: number;
   playbackPosition: number;
   duration: number;
@@ -102,12 +103,14 @@ export const MAX_SEARCH_HISTORY = 10;
 export async function upsertHistory(entry: Omit<HistoryEntry, 'id'>): Promise<void> {
   const id = `${entry.sourceKey}_${entry.vodId}`;
   const existing = await db.history.get(id);
+  const previous = existing?.episodeIndex === entry.episodeIndex &&
+    existing?.lineIndex === entry.lineIndex ? existing : undefined;
   const merged: HistoryEntry = {
     ...existing,
     ...entry,
     id,
-    playbackPosition: entry.playbackPosition > 10 ? entry.playbackPosition : existing?.playbackPosition ?? 0,
-    duration: entry.duration || existing?.duration || 0,
+    playbackPosition: entry.playbackPosition > 10 ? entry.playbackPosition : previous?.playbackPosition ?? 0,
+    duration: entry.duration || previous?.duration || 0,
     timestamp: Date.now(),
   };
   await db.history.put(merged);

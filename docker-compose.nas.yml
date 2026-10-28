@@ -1,12 +1,16 @@
 services:
   libretv:
-    image: ghcr.io/huyangjake/libretv:nas
+    image: ${LIBRETV_IMAGE:-ghcr.io/huyangjake/libretv:nas}
     build: .
     restart: unless-stopped
     ports:
       - "${LIBRETV_PORT:-18080}:8080"
     environment:
       PASSWORD: ${PASSWORD:?Set PASSWORD in .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set a separate CatVod administrator password}
+      CATVOD_TOKEN: ${CATVOD_TOKEN:?Set a random internal token of at least 24 characters}
+      CATVOD_URL: http://catvod:8790
+      CATVOD_MEDIA_URL: http://catvod:9988
       TZ: Asia/Shanghai
       DATA_DIR: /app/data
       SPIDER_URL: http://spider:8787
@@ -16,18 +20,19 @@ services:
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       ALL_PROXY: ${ALL_PROXY:-}
-      NO_PROXY: ${NO_PROXY:-127.0.0.1,localhost,spider,libretv}
-      no_proxy: ${NO_PROXY:-127.0.0.1,localhost,spider,libretv}
+      NO_PROXY: ${NO_PROXY:-127.0.0.1,localhost,spider,libretv,catvod}
+      no_proxy: ${NO_PROXY:-127.0.0.1,localhost,spider,libretv,catvod}
     volumes:
       - libretv-data:/app/data
     depends_on:
       - spider
+      - catvod
     mem_limit: 768m
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
   spider:
-    image: ghcr.io/huyangjake/libretv-spider:nas
+    image: ${SPIDER_IMAGE:-ghcr.io/huyangjake/libretv-spider:nas}
     build: ./spider
     restart: unless-stopped
     read_only: true
@@ -50,5 +55,32 @@ services:
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
+  catvod:
+    image: ${CATVOD_IMAGE:-ghcr.io/huyangjake/libretv-catvod:nas}
+    build: ./catvod
+    restart: unless-stopped
+    environment:
+      CATVOD_TOKEN: ${CATVOD_TOKEN}
+      NODE_OPTIONS: ${NODE_OPTIONS:---use-env-proxy}
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      ALL_PROXY: ${ALL_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-127.0.0.1,localhost,spider,libretv,catvod}
+      no_proxy: ${NO_PROXY:-127.0.0.1,localhost,spider,libretv,catvod}
+    volumes:
+      - catvod-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 96
+    mem_limit: 640m
+    cpus: 1.5
+    # No host ports or application passwords; only its dedicated state volume.
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
 volumes:
   libretv-data:
+  catvod-data:

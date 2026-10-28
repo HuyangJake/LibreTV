@@ -247,7 +247,7 @@ CI 校验通过后自动构建并推送 `ghcr.io/librespark/libretv:<版本>`（
 ☕ 觉得有用的话，可以到 [AFDIAN](https://afdian.com/a/veehub) 请我喝杯咖啡。
 ## NAS fork：共享源与 XPTV Spider
 
-本 fork 基于官方 2.19.5，改造版本为 `2.19.5-nas.2`；开发分支为 `nas`。
+本 fork 基于官方 2.19.5，改造版本为 `2.19.5-nas.3`；开发分支为 `nas`。
 
 - 同一 NAS 的已登录设备共享自定义点播源、订阅、直播源和启停选择。设置变更约 2 秒内保存至 NAS，其他已打开的设备自动拉取。
 - 首个登录浏览器将现有源配置迁移到服务端；后续设备以 NAS 配置为准。本机旧配置保留在 `libretv-source-migration-backup`。并发编辑使用版本检查，冲突时加载 NAS 最新配置，本次修改保留在 `libretv-source-conflict-backup`，请重新编辑。
@@ -257,18 +257,20 @@ CI 校验通过后自动构建并推送 `ghcr.io/librespark/libretv:<版本>`（
 - Spider 脚本在服务端短时缓存 5 分钟，同一脚本的并发请求复用下载结果，减少浏览和翻页时的外部请求。更新远程脚本后可等待缓存到期或重启 Spider 服务。
 - 已适配 `createCheerio`、`createCryptoJS`、`argsify/jsonify`、`$config_str`、`$print`、`$fetch.get/post`。脚本的播放请求头会随 HLS 分片、密钥请求转发。需要 Safari/WebView、人机验证、网盘登录或原生扩展的脚本不在兼容范围，错误会明确显示。
 - Spider 服务为内置白名单中的请求提供浏览器 TLS/HTTP 指纹兼容能力，减少普通 HTTP 客户端收到 403 验证页的情况。请求仍校验公网地址、固定已校验的 DNS 结果，并逐跳检查重定向；不会启动浏览器或自动操作验证码。数据源若强制交互验证，仍可能不可用。
+- 猫影视与夸克支持固定审核源包的搜索、片库、分享文件列表及按需转存播放；账号与源包由独立管理员密码管理。正式部署使用 `docker-compose.nas.yml` 的 CatVod 服务，迁移说明见[部署记录](docs/catvod-nas-deployment.md)，验证范围见[实现记录](docs/catvod-implementation.md)。普通 XPTV 脚本的兼容范围保持上述说明，不能将任意猫影视 JS 当作 XPTV 导入。
 
 部署（Docker Compose，单实例）：
 
 ```sh
 # 在本 fork 的 nas 分支目录中；.env 使用你原来的 PASSWORD，勿提交到 GitHub
 # 可保留 DEFAULT_SOURCES / DEFAULT_SUBSCRIPTIONS 环境变量
+# 升级前新增 ADMIN_PASSWORD 与 CATVOD_TOKEN；自定义 NO_PROXY 时追加 catvod
 # 首次部署也可使用 docker compose -f docker-compose.nas.yml up -d --build
 docker compose -f docker-compose.nas.yml pull
 docker compose -f docker-compose.nas.yml up -d --no-build
 ```
 
-默认端口为 18080，可用 `.env` 的 `LIBRETV_PORT` 调整。数据存于命名卷 `libretv-data` 中的 `/app/data/sources.json`；重建容器会保留数据，备份时保存此文件及原部署配置，勿执行 `down -v`。发布工作流会生成 `ghcr.io/<owner>/libretv:nas` 与 `libretv-spider:nas`，首次发布后应检查包的可见性；也可以在 NAS 从源码构建。
+默认端口为 18080，可用 `.env` 的 `LIBRETV_PORT` 调整。应用源配置在 `libretv-data`，CatVod授权、源包和归属账本在独立 `catvod-data` 卷；重建容器会保留数据，勿执行 `down -v`。发布工作流生成 `ghcr.io/<owner>/libretv:nas`、`libretv-spider:nas` 和 `libretv-catvod:nas`，并提供同一提交SHA的固定标签。迁移和回退见[部署说明](docs/catvod-nas-deployment.md)；也可从源码构建。
 
 Spider 是独立的非 root 容器，限制内存、CPU、进程数和运行时间，不挂载 NAS 文件或 Docker socket，不开放主机端口。**仅加载可信脚本**：Node VM 不是安全沙箱，容器隔离不能保证任意恶意脚本安全。Spider 可能访问互联网，部署者仍需信任脚本作者。源站的网络可达性、反爬策略、失效地址等会影响实际搜索和播放；兼容接口不等于保证每个第三方源始终可用。
 

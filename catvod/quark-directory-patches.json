@@ -1,0 +1,51 @@
+[
+  {
+    "purpose": "Carry directory path in recursive listing",
+    "find": "s=async function(c,x,u){let d=r,l=16696+1383*-12;",
+    "replace": "s=async function(c,x,u,catvodPath=[]){let d=r,l=16696+1383*-12;",
+    "expectedCount": 1,
+    "offset": 2913982
+  },
+  {
+    "purpose": "Annotate all current-page entries, including videos and subtitles",
+    "find": "for(let m of f)if(t[d(878,\"4^o%\")](m[d(1046,\"GLl#\")],!0))",
+    "replace": "for(let m of f)if((m.__catvodDirectoryId=x,m.catvod_path=catvodPath.slice(),m.dir===true))",
+    "expectedCount": 1,
+    "offset": 2914473
+  },
+  {
+    "purpose": "Preserve path across pagination; bypass fixed-arity wrapper",
+    "find": "let m=await t[d(819,\"k7c%\")](s,c,x,t[d(765,\"NF8D\")](u,1));",
+    "replace": "let m=await s(c,x,u+1,catvodPath);",
+    "expectedCount": 1,
+    "offset": 2915186
+  },
+  {
+    "purpose": "Extend full path on child directory recursion; bypass fixed-arity wrapper",
+    "find": "let A=await t[d(779,\"o!hJ\")](s,c,m[d(1188,\"h8kY\")]);",
+    "replace": "let A=await s(c,m[d(1188,\"h8kY\")],1,[...catvodPath,String(m.file_name??m[d(1188,\"h8kY\")])]);",
+    "expectedCount": 1,
+    "offset": 2915295
+  },
+  {
+    "purpose": "Do not match same-name subtitles from another season directory",
+    "find": "t[x(959,\"[GtJ\")](Tb,c,i)",
+    "replace": "Tb(c,i.filter(sub=>sub.__catvodDirectoryId===c.__catvodDirectoryId))",
+    "expectedCount": 1,
+    "offset": 2915552
+  },
+  {
+    "purpose": "Preserve directory identity while building episode identifiers",
+    "find": "vod_size:i[s(604,\"k4tA\")]}}),",
+    "replace": "vod_size:i[s(604,\"k4tA\")],catvod_path:i.catvod_path}}),",
+    "expectedCount": 1,
+    "offset": 2921187
+  },
+  {
+    "purpose": "Pack each directory independently using existing Mx; tt supports array result",
+    "find": "t[r(1087,\"sPks\")](Mx,t[r(471,\"b9#E\")](t[r(484,\"a)#!\")](t[r(1157,\"Wete\")](getPanName,t[r(724,\"0QlL\")]),\"-\"),o[r(1172,\"P(HE\")]),a)",
+    "replace": "globalThis.catvodGroupQuarkFiles(t[r(471,\"b9#E\")](t[r(484,\"a)#!\")](t[r(1157,\"Wete\")](getPanName,t[r(724,\"0QlL\")]),\"-\"),o[r(1172,\"P(HE\")]),a,Mx)",
+    "expectedCount": 1,
+    "offset": 2921216
+  }
+]

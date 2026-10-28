@@ -13,7 +13,12 @@ export const LIVE_STREAM_BASE = '/api/live/stream?url=';
 
 /** URI 已是本站代理地址（新旧两种形式：/api/proxy/…、/api/proxy?url=…、/api/live/stream/…、/api/live/stream?url=…）时不再二次改写 */
 export function isProxiedUri(uri: string): boolean {
-  return uri.startsWith('/api/spider/') || uri.startsWith('/api/proxy') || uri.startsWith('/api/live/stream');
+  return (
+    uri.startsWith('/api/catvod/') ||
+    uri.startsWith('/api/spider/') ||
+    uri.startsWith('/api/proxy') ||
+    uri.startsWith('/api/live/stream')
+  );
 }
 
 /**
@@ -107,7 +112,9 @@ export function stripLeadAdGroup(m3u8Content: string): string {
     const leadSize = groupSize(discIdx[0] + 1, discIdx[1]);
     const others: number[] = [];
     for (let g = 1; g < discIdx.length; g++) {
-      others.push(groupSize(discIdx[g] + 1, g + 1 < discIdx.length ? discIdx[g + 1] : lines.length));
+      others.push(
+        groupSize(discIdx[g] + 1, g + 1 < discIdx.length ? discIdx[g + 1] : lines.length)
+      );
     }
     const sorted = [...others].sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)];
@@ -226,7 +233,11 @@ interface AdGroupScan {
 }
 
 /** 按 DISCONTINUITY 把播放列表切成组：组 k（k≥1）前的边界行是 discIdx[k-1] */
-function scanGroups(lines: string[], isDisc: (l: string) => boolean, isSegment: (l: string) => boolean): AdGroupScan[] {
+function scanGroups(
+  lines: string[],
+  isDisc: (l: string) => boolean,
+  isSegment: (l: string) => boolean
+): AdGroupScan[] {
   const discIdx: number[] = [];
   for (let i = 0; i < lines.length; i++) if (isDisc(lines[i])) discIdx.push(i);
 
@@ -305,5 +316,7 @@ function stripLeadingDisc(content: string): string {
  */
 export function stripAdGroups(m3u8Content: string): string {
   if (!m3u8Content) return '';
-  return stripLeadingDisc(stripLeadAdGroup(stripInterstitialAdGroups(stripMarkedAdGroups(m3u8Content))));
+  return stripLeadingDisc(
+    stripLeadAdGroup(stripInterstitialAdGroups(stripMarkedAdGroups(m3u8Content)))
+  );
 }

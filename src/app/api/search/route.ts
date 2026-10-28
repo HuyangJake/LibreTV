@@ -1,10 +1,23 @@
+import { isCatvodSource } from '@/lib/catvod-source';
+import { searchCatvod } from '@/lib/catvod';
 import { isSpiderSource, searchSpider } from '@/lib/spider';
 import { NextResponse } from 'next/server';
 import { guardRequest } from '@/lib/api-guard';
-import { cmsRequestHeaders, filterAdultResults, filterRelevantResults, normalizeTitle, parseSearchList } from '@/lib/cms-parser';
+import {
+  cmsRequestHeaders,
+  filterAdultResults,
+  filterRelevantResults,
+  normalizeTitle,
+  parseSearchList,
+} from '@/lib/cms-parser';
 import { fetchUpstream, getCache, setCache } from '@/lib/fetch-utils';
 import { checkUpstreamAllowed } from '@/lib/ssrf';
-import type { SearchResponse, SearchStreamEvent, SourceConfig, SourceSearchOutcome } from '@/lib/types';
+import type {
+  SearchResponse,
+  SearchStreamEvent,
+  SourceConfig,
+  SourceSearchOutcome,
+} from '@/lib/types';
 
 export const runtime = 'nodejs';
 
@@ -19,7 +32,10 @@ const SEARCH_CACHE_TTL = 60 * 1000;
 
 /** 缓存键：wd + 成人过滤 + 排序后的源地址集合（直接用完整字符串，避免哈希碰撞串缓存） */
 function searchCacheKey(wd: string, sources: SourceConfig[], filterAdult: boolean): string {
-  const urls = sources.map((s) => s.url.replace(/\/+$/, '')).sort().join('|');
+  const urls = sources
+    .map((s) => s.url.replace(/\/+$/, ''))
+    .sort()
+    .join('|');
   return `search:${wd}\n${filterAdult ? 1 : 0}\n${urls}`;
 }
 
@@ -48,7 +64,9 @@ const SEARCH_SOURCE_TIMEOUT_MS = (() => {
 /** AbortSignal.timeout / 源级死线中断均以 TimeoutError 语义呈现（直接抛出或挂在 cause 上） */
 function isTimeoutError(err: unknown): boolean {
   const candidates: unknown[] = [err, err instanceof Error ? err.cause : undefined];
-  return candidates.some((e) => e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError'));
+  return candidates.some(
+    (e) => e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')
+  );
 }
 
 /**
@@ -64,9 +82,23 @@ async function searchSource(source: SourceConfig, wd: string): Promise<SourceSea
     ms: Date.now() - start,
   });
 
-  if (isSpiderSource(source)) {
-    try { return finish({ sourceKey: source.key, ok: true, list: await searchSpider(source, wd) }); }
-    catch (err) { return finish({ sourceKey: source.key, ok: false, list: [], error: err instanceof Error ? err.message : 'Spider 搜索失败' }); }
+  if (isCatvodSource(source) || isSpiderSource(source)) {
+    try {
+      return finish({
+        sourceKey: source.key,
+        ok: true,
+        list: isCatvodSource(source)
+          ? await searchCatvod(source, wd)
+          : await searchSpider(source, wd),
+      });
+    } catch (err) {
+      return finish({
+        sourceKey: source.key,
+        ok: false,
+        list: [],
+        error: err instanceof Error ? err.message : 'Spider 搜索失败',
+      });
+    }
   }
 
   if (!/^https?:\/\//.test(source.url || '')) {
@@ -113,7 +145,10 @@ async function searchSource(source: SourceConfig, wd: string): Promise<SourceSea
     const list = parseSearchList(first, source);
     // 源站真实总页数与配置上限取较小者；pagecount 缺失或非法时视为 1 页
     const rawPageCount = parseInt(String((first as { pagecount?: unknown }).pagecount ?? '1'), 10);
-    const pageCount = Math.min(Number.isFinite(rawPageCount) ? Math.max(1, rawPageCount) : 1, SEARCH_MAX_PAGES);
+    const pageCount = Math.min(
+      Number.isFinite(rawPageCount) ? Math.max(1, rawPageCount) : 1,
+      SEARCH_MAX_PAGES
+    );
     if (pageCount > 1) {
       const extraPages = await Promise.all(
         Array.from({ length: pageCount - 1 }, (_, i) => i + 2).map(async (page) => {
@@ -133,14 +168,15 @@ async function searchSource(source: SourceConfig, wd: string): Promise<SourceSea
     // 死线先到时 run 仍会在后台被 abort 并 reject，必须先挂 catch 防未处理 rejection
     const runPromise = run()
       .then(finish)
-      .catch((err: unknown): SourceSearchOutcome =>
-        finish({
-          sourceKey: source.key,
-          ok: false,
-          list: [],
-          error: err instanceof Error ? err.message : '请求失败',
-          timedOut: isTimeoutError(err),
-        })
+      .catch(
+        (err: unknown): SourceSearchOutcome =>
+          finish({
+            sourceKey: source.key,
+            ok: false,
+            list: [],
+            error: err instanceof Error ? err.message : '请求失败',
+            timedOut: isTimeoutError(err),
+          })
       );
     return await Promise.race([runPromise, deadline]);
   } catch (err) {
@@ -157,14 +193,20 @@ async function searchSource(source: SourceConfig, wd: string): Promise<SourceSea
 }
 
 /** 合并 + 去重 + 过滤 + 排序，stream 与非 stream 两种模式共用 */
-function aggregateOutcomes(outcomes: SourceSearchOutcome[], wd: string, filterAdult: boolean): SearchResponse {
+function aggregateOutcomes(
+  outcomes: SourceSearchOutcome[],
+  wd: string,
+  filterAdult: boolean
+): SearchResponse {
   const seen = new Set<string>();
-  let list = outcomes.flatMap((o) => o.list).filter((item) => {
-    const key = `${item.sourceKey}_${item.vodId}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  let list = outcomes
+    .flatMap((o) => o.list)
+    .filter((item) => {
+      const key = `${item.sourceKey}_${item.vodId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
   list = filterAdultResults(list, filterAdult);
   // 部分源站做分词/OR 模糊搜索（搜「摔跤吧！爸爸」返回一堆「爸爸XXX」），按关键词过滤
@@ -220,9 +262,16 @@ export async function POST(req: Request) {
   if (cached) {
     // 流式模式下缓存命中也要走 done 事件，客户端解析逻辑保持单一
     if (new URL(req.url).searchParams.get('stream') === '1') {
-      const event: SearchStreamEvent = { type: 'done', list: cached.list, failures: cached.failures };
+      const event: SearchStreamEvent = {
+        type: 'done',
+        list: cached.list,
+        failures: cached.failures,
+      };
       return new Response(JSON.stringify(event) + '\n', {
-        headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' },
+        headers: {
+          'Content-Type': 'application/x-ndjson; charset=utf-8',
+          'Cache-Control': 'no-store',
+        },
       });
     }
     return NextResponse.json(cached);
@@ -265,7 +314,9 @@ export async function POST(req: Request) {
       closed = true;
       try {
         controller.close();
-      } catch { /* 已断开 */ }
+      } catch {
+        /* 已断开 */
+      }
     },
   });
 

@@ -1,0 +1,104 @@
+{
+  "key": "nodejs_public_quark",
+  "name": "公开夸克·跨年晚会",
+  "provenance": {
+    "repository": "https://github.com/gaotianliuyun/gao",
+    "commit": "8213bb046f4dce746b5f2ddcddb13a336d0b0d60",
+    "path": "json/quarkshare.txt",
+    "url": "https://raw.githubusercontent.com/gaotianliuyun/gao/8213bb046f4dce746b5f2ddcddb13a336d0b0d60/json/quarkshare.txt",
+    "sha256": "e3f1e7aaa0404811852f30c71c6794c46e81bdcd25c26b045318008982a84430",
+    "checkedAt": "2026-10-25"
+  },
+  "categories": [
+    {
+      "type_id": "stage",
+      "type_name": "跨年晚会"
+    }
+  ],
+  "items": [
+    {
+      "id": "5c8b3f4c5e88e638",
+      "share": "9ebb62b93194",
+      "fid": "3531200e990e408fae06dda6fe896247",
+      "name": "2023最美的夜 bilibili晚会[P1]第一篇章正片 日落 精彩全程  [3.08GB]",
+      "category": "stage"
+    },
+    {
+      "id": "03d33b7c1b4cf500",
+      "share": "9ebb62b93194",
+      "fid": "20cc057d301e49b0856172e35c486f84",
+      "name": "2023最美的夜 bilibili晚会[P2]第二篇章正片 月升 精彩全程  [2.67GB]",
+      "category": "stage"
+    },
+    {
+      "id": "46a42e01c04e0d54",
+      "share": "9ebb62b93194",
+      "fid": "df9e1b6d36fa4a23a9f1d8f00e3240d1",
+      "name": "2023最美的夜 bilibili晚会[P3]第三篇章正片 星繁 精彩全程  [3.19GB]",
+      "category": "stage"
+    },
+    {
+      "id": "ba6c979d72fc5fea",
+      "share": "9ebb62b93194",
+      "fid": "13f0a36588d142e6a95536fa11d8bc06",
+      "name": "2024北京卫视跨年晚会  [5.03GB]",
+      "category": "stage"
+    },
+    {
+      "id": "af5df1fbbc4295a6",
+      "share": "9ebb62b93194",
+      "fid": "a598a3d474c74b7a99563ae6cf633020",
+      "name": "2024东方卫视跨年盛典  [5.34GB]",
+      "category": "stage"
+    },
+    {
+      "id": "5ee64ecfb05c2f77",
+      "share": "9ebb62b93194",
+      "fid": "8855889b2f0e4959a466617f4ea2e369",
+      "name": "2024江苏卫视跨年演唱会  [4.81GB]",
+      "category": "stage"
+    },
+    {
+      "id": "ea6547f2f36fa7a6",
+      "share": "9ebb62b93194",
+      "fid": "09bfa1a71ed04edfa7ca5333523d9d76",
+      "name": "2024山东新年交响音乐会  [1.98GB]",
+      "category": "stage"
+    },
+    {
+      "id": "f85fcb90e3c18f2e",
+      "share": "9ebb62b93194",
+      "fid": "23888bc48f874c07bb2a898bc79e92b6",
+      "name": "东方卫视2024跨年晚会  [3.67GB]",
+      "category": "stage"
+    },
+    {
+      "id": "69a0a175bbe493c3",
+      "share": "9ebb62b93194",
+      "fid": "75ed3bdf345d4bc3ac140facd6bde844",
+      "name": "东南卫视2024思享跨年  [2.90GB]",
+      "category": "stage"
+    },
+    {
+      "id": "317db44c556ce1f1",
+      "share": "9ebb62b93194",
+      "fid": "6d531a32e6ee46758cddb6f11a68c674",
+      "name": "湖南卫视2024跨年晚会  [6.20GB]",
+      "category": "stage"
+    },
+    {
+      "id": "781e1a674d864138",
+      "share": "9ebb62b93194",
+      "fid": "ceba15447ff141918e0cfe7f4f799291",
+      "name": "江苏卫视2024跨年晚会  [4.14GB]",
+      "category": "stage"
+    },
+    {
+      "id": "2b449594705e70b8",
+      "share": "9ebb62b93194",
+      "fid": "b319679809e0473697093496e6353295",
+      "name": "浙江卫视2024跨年晚会  [5.67GB]",
+      "category": "stage"
+    }
+  ]
+}

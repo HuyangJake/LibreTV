@@ -2,6 +2,8 @@ name: NAS images
 on:
   push:
     branches: [nas]
+  pull_request:
+    branches: [nas]
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,12 +25,18 @@ jobs:
       - run: npm test
       - run: npm ci --prefix spider
       - run: npm test --prefix spider
+      - run: npm ci --prefix catvod
+      - run: node scripts/catvod-fetch-fixture.mjs
+      - run: npm test --prefix catvod
+        env:
+          CATVOD_TEST_BUNDLE: ${{ runner.temp }}/catvod-pinned-source.cjs
   publish:
     needs: verify
+    if: github.ref == 'refs/heads/nas' && github.event_name != 'pull_request'
     strategy:
       matrix:
         arch: [amd64, arm64]
-        image: [libretv, libretv-spider]
+        image: [libretv, libretv-spider, libretv-catvod]
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
@@ -42,9 +50,10 @@ jobs:
         run: echo "name=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.image == 'libretv' && '.' || './spider' }}
+          context: ${{ matrix.image == 'libretv' && '.' || matrix.image == 'libretv-spider' && './spider' || './catvod' }}
           platforms: linux/${{ matrix.arch }}
           push: true
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           tags: ghcr.io/${{ steps.owner.outputs.name }}/${{ matrix.image }}:nas-${{ github.sha }}-${{ matrix.arch }}
           cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.arch }}
@@ -53,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: [libretv, libretv-spider]
+        image: [libretv, libretv-spider, libretv-catvod]
     steps:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
