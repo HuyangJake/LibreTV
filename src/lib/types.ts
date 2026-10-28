@@ -6,6 +6,7 @@ export interface SourceConfig {
   /** API 根地址，如 https://example.com/api.php/provide/vod */
   url: string;
   /** 可选：详情页根地址（部分源需要爬详情页提取 m3u8） */
+  kind?: 'catvod';
   detail?: string;
   isAdult?: boolean;
 }
@@ -40,7 +41,13 @@ export interface VideoInfo {
   sourceUrl?: string;
 }
 
+export interface VideoLine {
+  name: string;
+  episodes: { name: string; url: string }[];
+}
+
 export interface VideoDetail {
+  lines?: VideoLine[];
   episodes: string[];
   videoInfo: VideoInfo;
 }

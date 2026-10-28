@@ -1,3 +1,5 @@
+import { isCatvodSource } from '@/lib/catvod-source';
+import { detailCatvod } from '@/lib/catvod';
 import { isSpiderSource, detailSpider } from '@/lib/spider';
 import { NextResponse } from 'next/server';
 import { guardRequest } from '@/lib/api-guard';
@@ -43,6 +45,7 @@ export async function GET(req: Request) {
   }
 
   try {
+    if (isCatvodSource(source)) return NextResponse.json(await detailCatvod(source, id));
     if (isSpiderSource(source)) return NextResponse.json(await detailSpider(source, id));
     // 详情页根地址：显式 detail 优先，其次 baseUrl 参数，最后用接口地址的 origin 推导
     // （Apple CMS 的详情页通常与接口同域）。脏 URL 会让 new URL 抛错，由外层 catch 兜底

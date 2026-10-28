@@ -8,6 +8,7 @@
     "dev": "next dev -p 8080",
     "build": "next build",
     "start": "next start -p 8080",
+    "start:catvod-test": "next start -p 18081 -H 0.0.0.0",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

@@ -143,7 +143,10 @@ function HistoryItem({ item }: { item: HistoryEntry }) {
   const envSources = useAppStore((s) => s.envSources);
   const { toast } = useToast();
   const [imgFailed, setImgFailed] = useState(false);
-  const source = resolveSource({ customAPIs, envSources }, item.sourceKey);
+  const source = resolveSource({ customAPIs, envSources }, item.sourceKey, {
+    url: item.sourceUrl,
+    name: item.sourceKey === 'catvod_nodejs_push' ? '夸克分享' : undefined,
+  });
 
   const hasPercent =
     item.playbackPosition > 10 && item.duration > 0 && item.playbackPosition < item.duration * 0.95;
@@ -153,6 +156,7 @@ function HistoryItem({ item }: { item: HistoryEntry }) {
     sourceKey: item.sourceKey,
     vodId: item.vodId,
     index: item.episodeIndex,
+    line: item.lineIndex,
     title: item.title,
     sourceUrl: source?.url,
     detail: source?.detail,
@@ -172,6 +176,7 @@ function HistoryItem({ item }: { item: HistoryEntry }) {
               title: item.title,
               pic: item.pic,
               episodeIndex: item.episodeIndex,
+              lineIndex: item.lineIndex,
               totalEpisodes: item.totalEpisodes,
               playbackPosition: item.playbackPosition,
               duration: item.duration,

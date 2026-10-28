@@ -1,0 +1,47 @@
+# Independent project: docker compose -p libretv-catvod-test -f docker-compose.catvod-test.yml up -d --build
+services:
+  libretv:
+    build: .
+    ports:
+      - "${CATVOD_TEST_BIND:-127.0.0.1}:${CATVOD_TEST_PORT:-18081}:8080"
+    environment:
+      PASSWORD: ${CATVOD_TEST_PASSWORD:?Set a test viewing password}
+      ADMIN_PASSWORD: ${CATVOD_ADMIN_PASSWORD:?Set a separate administrator password}
+      DATA_DIR: /app/data
+      SPIDER_URL: http://spider:8787
+      CATVOD_URL: http://catvod:8790
+      CATVOD_MEDIA_URL: http://catvod:9988
+      CATVOD_TOKEN: ${CATVOD_TOKEN:?Set a random token with at least 24 characters}
+      TZ: Asia/Shanghai
+    volumes: [catvod-test-app:/app/data]
+    depends_on: [spider, catvod]
+    mem_limit: 768m
+    restart: unless-stopped
+  spider:
+    build: ./spider
+    read_only: true
+    tmpfs: [/tmp:size=32m,noexec,nosuid]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 384m
+    restart: unless-stopped
+  catvod:
+    build: ./catvod
+    environment:
+      CATVOD_TOKEN: ${CATVOD_TOKEN}
+    volumes: [catvod-test-runtime:/data]
+    read_only: true
+    tmpfs: [/tmp:size=32m,noexec,nosuid]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 96
+    mem_limit: 640m
+    cpus: 1.5
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+volumes:
+  catvod-test-app:
+  catvod-test-runtime:

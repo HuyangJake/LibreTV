@@ -1,3 +1,4 @@
+import { isCatvodSource } from './catvod-source';
 import { isSpiderSource } from './spider-source';
 import {
   decryptAes128CbcPrefix,
@@ -73,7 +74,9 @@ export function parseBestHeight(text: string): number | undefined {
     }
     if (!line || line.startsWith('#') || !pending) continue;
     // 只有 BANDWIDTH 的源站按常见转码参数反推高度，与播放器的档位命名口径一致
-    const height = pending.height ?? (pending.bandwidth > 0 ? inferHeightFromBitrate(pending.bandwidth) : undefined);
+    const height =
+      pending.height ??
+      (pending.bandwidth > 0 ? inferHeightFromBitrate(pending.bandwidth) : undefined);
     if (height && (best === undefined || height > best)) best = height;
     pending = undefined;
   }
@@ -276,7 +279,11 @@ async function probeSegmentResolution(
 }
 
 /** 取影片的播放地址列表（与 /api/detail 同逻辑：列表接口优先，拿不到再爬详情页） */
-async function fetchEpisodes(source: SourceConfig, id: string, signal: AbortSignal): Promise<string[]> {
+async function fetchEpisodes(
+  source: SourceConfig,
+  id: string,
+  signal: AbortSignal
+): Promise<string[]> {
   const api = `${source.url.replace(/\/+$/, '')}?ac=videolist&ids=${encodeURIComponent(id)}`;
   const res = await fetchUpstream(api, { timeoutMs: 6000, headers: cmsRequestHeaders(), signal });
   if (res.ok) {
@@ -354,11 +361,14 @@ async function probeEpisode(
  * 返回的 height 为 undefined 表示「测不出」（单码率 / 直链 / 被拒），而非请求失败——
  * 失败时带 error，前端据此区分「未知」与「探测失败」两种状态。
  */
-export async function probeQuality(item: QualityProbeItem, signal?: AbortSignal): Promise<QualityProbeResult> {
+export async function probeQuality(
+  item: QualityProbeItem,
+  signal?: AbortSignal
+): Promise<QualityProbeResult> {
   const { source, id } = item;
   const base: QualityProbeResult = { sourceKey: source.key, vodId: id };
   // Spider playback is resolved lazily; video decoding supplies the actual quality.
-  if (isSpiderSource(source)) return base;
+  if (isCatvodSource(source) || isSpiderSource(source)) return base;
 
   if (!/^https?:\/\//.test(source.url || '') || !/^[\w-]+$/.test(id)) {
     return { ...base, error: '无效的源或影片 ID' };
@@ -367,7 +377,10 @@ export async function probeQuality(item: QualityProbeItem, signal?: AbortSignal)
   if (!verdict.ok) return { ...base, error: verdict.reason };
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(new DOMException('画质探测超时', 'TimeoutError')), QUALITY_PROBE_TIMEOUT_MS);
+  const timer = setTimeout(
+    () => controller.abort(new DOMException('画质探测超时', 'TimeoutError')),
+    QUALITY_PROBE_TIMEOUT_MS
+  );
   // 客户端断开（关闭面板/切页）与单条死线合并为一个 signal
   const signals = signal ? [signal, controller.signal] : [controller.signal];
   const merged = AbortSignal.any(signals);
@@ -410,9 +423,17 @@ async function withSegmentBudget(
   clientSignal?: AbortSignal
 ): Promise<number | undefined> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(new DOMException('分片解析超时', 'TimeoutError')), SEGMENT_BUDGET_MS);
+  const timer = setTimeout(
+    () => controller.abort(new DOMException('分片解析超时', 'TimeoutError')),
+    SEGMENT_BUDGET_MS
+  );
   try {
-    return await probeSegmentResolution(text, playlistUrl, source, AbortSignal.any([merged, controller.signal]));
+    return await probeSegmentResolution(
+      text,
+      playlistUrl,
+      source,
+      AbortSignal.any([merged, controller.signal])
+    );
   } catch {
     if (clientSignal?.aborted) throw new DOMException('已取消', 'AbortError');
     return undefined;

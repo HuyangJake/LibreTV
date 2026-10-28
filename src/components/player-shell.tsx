@@ -6,10 +6,7 @@ import Hls, { type HlsConfig } from 'hls.js';
 
 import { PlaybackRecovery, describeHlsError } from '@/lib/playback-recovery';
 import { createHlsLoader } from '@/lib/hls-loader';
-import {
-  getVideoPrefetcher,
-  getNextEpisodePrefetcher,
-} from '@/lib/video-prefetcher';
+import { getVideoPrefetcher, getNextEpisodePrefetcher } from '@/lib/video-prefetcher';
 import { loadCacheSettings } from '@/lib/video-cache';
 import { formatTime } from '@/lib/utils';
 import { prefersTouchPointer } from '@/lib/touch-pointer';
@@ -31,6 +28,7 @@ import {
 
 interface PlayerShellProps {
   url: string;
+  mediaType?: 'hls' | 'video';
   title: string;
   adFilter: boolean;
   autoplayNext: boolean;
@@ -56,6 +54,7 @@ interface PlayerShellProps {
 
 export function PlayerShell({
   url,
+  mediaType,
   title,
   adFilter,
   autoplayNext,
@@ -81,12 +80,36 @@ export function PlayerShell({
 
   // 始终持有最新 props/回调，避免重建播放器
   const propsRef = useRef({
-    url, title, adFilter, autoplayNext, episodeKey, nextUrl, nextEpisodeKey,
-    getRestorePosition, onTimeUpdate, onEnded, onPause, onQuality, onRequestSwitchSource,
+    url,
+    mediaType,
+    title,
+    adFilter,
+    autoplayNext,
+    episodeKey,
+    nextUrl,
+    nextEpisodeKey,
+    getRestorePosition,
+    onTimeUpdate,
+    onEnded,
+    onPause,
+    onQuality,
+    onRequestSwitchSource,
   });
   propsRef.current = {
-    url, title, adFilter, autoplayNext, episodeKey, nextUrl, nextEpisodeKey,
-    getRestorePosition, onTimeUpdate, onEnded, onPause, onQuality, onRequestSwitchSource,
+    url,
+    mediaType,
+    title,
+    adFilter,
+    autoplayNext,
+    episodeKey,
+    nextUrl,
+    nextEpisodeKey,
+    getRestorePosition,
+    onTimeUpdate,
+    onEnded,
+    onPause,
+    onQuality,
+    onRequestSwitchSource,
   };
 
   /** 上报实测画质：多次上报取大值由调用方决定，这里只管把拿到的高度传出去 */
@@ -147,6 +170,7 @@ export function PlayerShell({
 
   // 当前集预取（episodeKey 缺省 = 关闭，见 ensure 内部 settings.enabled 判断）
   const ensurePrefetch = (mediaUrl: string, currentTime: number, horizonSeconds?: number) => {
+    if (propsRef.current.mediaType === 'video' || mediaUrl.startsWith('/api/catvod/')) return;
     const p = propsRef.current;
     if (!p.episodeKey) return;
     getVideoPrefetcher().ensure({
@@ -178,6 +202,23 @@ export function PlayerShell({
     restoreCleanupRef.current = null;
     hlsRef.current?.destroy();
     currentMediaUrlRef.current = mediaUrl;
+    if (propsRef.current.mediaType === 'video') {
+      hlsRef.current = null;
+      const restore = async () => {
+        if (restoredRef.current) return;
+        const saved = (await propsRef.current.getRestorePosition?.()) ?? 0;
+        if (saved > 10 && saved < video.duration - 2) video.currentTime = saved;
+        restoredRef.current = true;
+        mediaHealthyRef.current = true;
+        reportQuality(video.videoHeight);
+        video.play().catch(() => {});
+      };
+      video.addEventListener('loadedmetadata', restore);
+      restoreCleanupRef.current = () => video.removeEventListener('loadedmetadata', restore);
+      video.src = mediaUrl;
+      video.load();
+      return;
+    }
     const hls = new Hls(buildHlsConfig());
     hlsRef.current = hls;
 
@@ -213,7 +254,9 @@ export function PlayerShell({
     };
 
     const restoreEvents = ['loadedmetadata', 'durationchange', 'canplay'] as const;
-    const onRestoreEvent = () => { void restoreAndStart(); };
+    const onRestoreEvent = () => {
+      void restoreAndStart();
+    };
     restoreEvents.forEach((event) => video.addEventListener(event, onRestoreEvent));
     restoreCleanupRef.current = () => {
       restoreEvents.forEach((event) => video.removeEventListener(event, onRestoreEvent));
@@ -259,6 +302,7 @@ export function PlayerShell({
           if (
             allowProxyFallback &&
             !mediaUrl.startsWith('/api/proxy') &&
+            !mediaUrl.startsWith('/api/catvod/') &&
             (decision.attempt >= 2 || data.details === 'manifestLoadError')
           ) {
             showHint('直连失败，改用代理重试...');
@@ -381,7 +425,9 @@ export function PlayerShell({
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (art as any).title = propsRef.current.title;
-      } catch { /* 忽略 */ }
+      } catch {
+        /* 忽略 */
+      }
     });
 
     art.on('video:playing', () => {
@@ -444,29 +490,56 @@ export function PlayerShell({
     const shortcuts = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       // 输入框或按钮获得焦点时不劫持按键：否则空格会吞掉按钮的默认激活
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('button')) return;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('button'))
+        return;
       const current = artRef.current;
       if (!current) return;
-      if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); return; } // 由父层处理集数切换
-      if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); return; }
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        return;
+      } // 由父层处理集数切换
+      if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        return;
+      }
       switch (e.key) {
         case 'ArrowLeft':
-          if (current.currentTime > 5) { current.currentTime -= 5; showHint('快退 5s'); e.preventDefault(); }
+          if (current.currentTime > 5) {
+            current.currentTime -= 5;
+            showHint('快退 5s');
+            e.preventDefault();
+          }
           break;
         case 'ArrowRight':
-          if (current.duration - current.currentTime > 5) { current.currentTime += 5; showHint('快进 5s'); e.preventDefault(); }
+          if (current.duration - current.currentTime > 5) {
+            current.currentTime += 5;
+            showHint('快进 5s');
+            e.preventDefault();
+          }
           break;
         case 'ArrowUp':
-          if (current.volume < 1) { current.volume = Math.min(1, current.volume + 0.1); showHint(`音量 ${Math.round(current.volume * 100)}%`); e.preventDefault(); }
+          if (current.volume < 1) {
+            current.volume = Math.min(1, current.volume + 0.1);
+            showHint(`音量 ${Math.round(current.volume * 100)}%`);
+            e.preventDefault();
+          }
           break;
         case 'ArrowDown':
-          if (current.volume > 0) { current.volume = Math.max(0, current.volume - 0.1); showHint(`音量 ${Math.round(current.volume * 100)}%`); e.preventDefault(); }
+          if (current.volume > 0) {
+            current.volume = Math.max(0, current.volume - 0.1);
+            showHint(`音量 ${Math.round(current.volume * 100)}%`);
+            e.preventDefault();
+          }
           break;
         case ' ':
-          current.toggle(); showHint('播放/暂停'); e.preventDefault();
+          current.toggle();
+          showHint('播放/暂停');
+          e.preventDefault();
           break;
-        case 'f': case 'F':
-          current.fullscreen = !current.fullscreen; e.preventDefault();
+        case 'f':
+        case 'F':
+          current.fullscreen = !current.fullscreen;
+          e.preventDefault();
           break;
       }
     };
@@ -518,7 +591,10 @@ export function PlayerShell({
       }, 500);
     };
     const onTouchEnd = () => {
-      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
       if (isLongPress) {
         art.video.playbackRate = originalRate;
         isLongPress = false;
@@ -551,7 +627,9 @@ export function PlayerShell({
       if (!endedRef.current) {
         try {
           propsRef.current.onPause?.(art.currentTime, art.duration);
-        } catch { /* 忽略 */ }
+        } catch {
+          /* 忽略 */
+        }
       }
       document.removeEventListener('keydown', shortcuts);
       document.removeEventListener('visibilitychange', saveOnHide);
@@ -582,7 +660,10 @@ export function PlayerShell({
   const firstUrlRef = useRef(true);
   useEffect(() => {
     // 挂载时的首次由创建 effect 的 customType 触发，跳过避免重复加载
-    if (firstUrlRef.current) { firstUrlRef.current = false; return; }
+    if (firstUrlRef.current) {
+      firstUrlRef.current = false;
+      return;
+    }
     loadEpisode(url);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
@@ -590,7 +671,10 @@ export function PlayerShell({
   // —— 广告过滤开关变化：重建 HLS loader（无需重建整个播放器） ——
   const firstAdFilterRef = useRef(true);
   useEffect(() => {
-    if (firstAdFilterRef.current) { firstAdFilterRef.current = false; return; }
+    if (firstAdFilterRef.current) {
+      firstAdFilterRef.current = false;
+      return;
+    }
     if (artRef.current && hlsRef.current) {
       // 用当前实际媒体地址：代理回退生效时切广告过滤不应跳回直连形式
       loadEpisode(currentMediaUrlRef.current || propsRef.current.url);
