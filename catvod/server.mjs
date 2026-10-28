@@ -5,6 +5,7 @@ import { timingSafeEqual, randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { chmod } from 'node:fs/promises';
 import refreshQuarkTrack from './quark-track.cjs';
+import { sourceEnvironment } from './source-environment.mjs';
 import { publicCatalogKey, publicCatalogSite, publicCatalogResult, publicCatalogDetail, publicShare } from './public-catalog.mjs';
 import { readState, saveState, install, rollback, checkUpdate, dataRoot } from './bundle-store.mjs';
 process.umask(0o077);
@@ -75,12 +76,7 @@ async function start() {
     [path.join(dataRoot, 'versions', state.filename)],
     {
       execArgv: ['--max-old-space-size=384'],
-      env: {
-        PATH: process.env.PATH,
-        NODE_ENV: 'production',
-        NODE_PATH: dataRoot,
-        DEV_HTTP_PORT: '9988',
-      },
+      env: sourceEnvironment(dataRoot),
       stdio: 'ignore',
     }
   );
