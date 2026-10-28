@@ -255,9 +255,9 @@ CI 校验通过后自动构建并推送 `ghcr.io/librespark/libretv:<版本>`（
 - 在「设置 → 点播源 → 添加」中填写 XPTV `.js` 链接即可。TVBOX 订阅中 `type: 3`、`ext` 为 `.js` 的条目也会导入。脚本必须实现 XPTV 的 `search/getTracks/getPlayinfo` 接口；不是所有 JS、TVBOX JAR、Python Spider 都兼容。
 - 「源片库」可单独进入已配置的数据源，查看分类与分页影片列表。标准采集接口使用分类和最新更新列表；支持浏览的 XPTV 脚本需另提供 `getConfig/getCards`。不提供列表的源会提示使用搜索。分类和页码保存在页面链接中，返回时可恢复；内容过滤与订阅启停设置仍然生效。
 - Spider 脚本在服务端短时缓存 5 分钟，同一脚本的并发请求复用下载结果，减少浏览和翻页时的外部请求。更新远程脚本后可等待缓存到期或重启 Spider 服务。
-- 已适配 `createCheerio`、`createCryptoJS`、`argsify/jsonify`、`$fetch.get/post`。脚本的播放请求头会随 HLS 分片、密钥请求转发。需要 Safari/WebView、人机验证、网盘登录或原生扩展的脚本不在兼容范围，错误会明确显示。
-- Spider 服务为内置白名单中的请求提供浏览器 TLS/HTTP 指纹兼容能力，减少普通 HTTP 客户端被拒绝的情况。请求仍校验公网地址、固定已校验的 DNS 结果，并逐跳检查重定向；不会启动浏览器或自动操作验证码。数据源若强制交互验证，仍可能不可用。
-- 猫影视源包与夸克接入在独立测试中：支持固定审核版本的站点搜索、片库、分享文件列表及按需转存播放；账号与源包由独立管理员密码管理。使用 `docker-compose.catvod-test.yml` 单独部署，配置与验收进度见[实现记录](docs/catvod-implementation.md)。普通 XPTV 脚本的兼容范围保持上述说明，不能将任意猫影视 JS 当作 XPTV 导入。
+- 已适配 `createCheerio`、`createCryptoJS`、`argsify/jsonify`、`$config_str`、`$print`、`$fetch.get/post`。脚本的播放请求头会随 HLS 分片、密钥请求转发。需要 Safari/WebView、人机验证、网盘登录或原生扩展的脚本不在兼容范围，错误会明确显示。
+- Spider 服务为内置白名单中的请求提供浏览器 TLS/HTTP 指纹兼容能力，减少普通 HTTP 客户端收到 403 验证页的情况。请求仍校验公网地址、固定已校验的 DNS 结果，并逐跳检查重定向；不会启动浏览器或自动操作验证码。数据源若强制交互验证，仍可能不可用。
+- 猫影视与夸克支持固定审核源包的搜索、片库、分享文件列表及按需转存播放；账号与源包由独立管理员密码管理。正式部署使用 `docker-compose.nas.yml` 的 CatVod 服务，迁移说明见[部署记录](docs/catvod-nas-deployment.md)，验证范围见[实现记录](docs/catvod-implementation.md)。普通 XPTV 脚本的兼容范围保持上述说明，不能将任意猫影视 JS 当作 XPTV 导入。
 
 部署（Docker Compose，单实例）：
 

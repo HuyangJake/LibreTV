@@ -28,10 +28,15 @@ process.once('message', async ({ script, method, ext, code }) => {
     };
     const context = vm.createContext({
       createCheerio: () => cheerio, createCryptoJS: () => CryptoJS,
-      argsify: (v) => typeof v === 'string' ? JSON.parse(v) : v,
+      argsify: (v) => (!v ? {} : typeof v === 'string' ? JSON.parse(v) : v),
       jsonify: JSON.stringify,
+      $config_str: '{}',
+      $print: () => {},
       $fetch: { get: (url, options) => request(url, undefined, options), post: (url, data, options) => request(url, data, options, 'POST') },
-      $utils: { openSafari: () => { throw new Error('此 Spider 需要交互式浏览器验证，NAS 暂不支持'); } },
+      $utils: {
+        openSafari: () => { throw new Error('此 Spider 需要交互式浏览器验证，NAS 暂不支持'); },
+        toastError: () => {},
+      },
       URL, URLSearchParams, TextEncoder, TextDecoder,
       console: { log() {}, warn() {}, error() {} },
       __ext: JSON.stringify(ext || {}),

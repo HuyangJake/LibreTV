@@ -17,7 +17,7 @@ test('XPTV helpers support Cheerio and stringified ext',async()=>{
 test('synchronous loops are terminated',async()=>{const result=await run('while(true){}','search');assert.match(result.error,/timed out/);});
 test('interactive browser dependency gives an explicit error',async()=>{const result=await run('function getTracks(){ $utils.openSafari("https://example.com"); }','getTracks');assert.match(result.error,/浏览器验证/);});
 test('blocks private, mapped and reserved addresses',async()=>{
-  for(const url of ['http://127.0.0.1','http://192.168.1.114','http://[::1]','http://[::ffff:127.0.0.1]','file:///etc/passwd','http://169.254.169.254']) await assert.rejects(assertPublic(url));
+  for(const url of ['http://127.0.0.1','http://192.168.1.1','http://[::1]','http://[::ffff:127.0.0.1]','file:///etc/passwd','http://169.254.169.254']) await assert.rejects(assertPublic(url));
 });
 test('XPTV category listing receives its category ext and requested page',async()=>{
   const result=await run('function getCards(ext){const e=argsify(ext);return jsonify({list:[{vod_name:"Example",ext:e}]})}','getCards',{typeurl:'https://example.com/category',page:2});
